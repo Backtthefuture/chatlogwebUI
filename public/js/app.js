@@ -980,11 +980,12 @@ class ChatlogApp {
             const formattedDate = date.toLocaleString('zh-CN');
             
             historyItem.innerHTML = `
-                <div class="history-title">${record.title}</div>
-                <div class="history-meta">
-                    <span class="history-date">${formattedDate}</span>
-                    <span class="history-type">${this.getAnalysisTypeLabel(record.analysisType)}</span>
-                    <span class="history-messages">${record.messageCount}条消息</span>
+                <div class="history-info">
+                    <div class="history-title">${record.title}</div>
+                    <div class="history-meta">
+                        <span class="history-date">${formattedDate}</span>
+                        <span class="history-messages">${record.messageCount}条消息</span>
+                    </div>
                 </div>
                 <div class="history-actions">
                     <button onclick="window.open('/analysis/${record.id}', '_blank')" class="view-btn">
@@ -1002,16 +1003,7 @@ class ChatlogApp {
         historyContainer.appendChild(historyList);
     }
 
-    // 获取分析类型标签
-    getAnalysisTypeLabel(type) {
-        const labels = {
-            'programming': '编程分析',
-            'science': '科学分析',
-            'reading': '阅读分析',
-            'custom': '自定义分析'
-        };
-        return labels[type] || '未知类型';
-    }
+
     
     // 初始化动态分析项
     initDynamicAnalysisItems() {
@@ -1048,16 +1040,14 @@ class ChatlogApp {
         if (!container) return;
         
         const itemHTML = `
-            <div class="dynamic-analysis-item" data-id="${item.id}">
-                <div class="ai-btn-group">
-                    <button class="ai-btn" data-type="${item.id}">
-                        <i class="fas fa-chart-bar"></i> 
-                        <span class="analysis-title">${item.displayName || '新建分析'}</span>
-                    </button>
-                    <button class="ai-settings-btn" data-type="${item.id}" title="设置分析">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                </div>
+            <div class="ai-btn-group dynamic-analysis-item" data-id="${item.id}">
+                <button class="ai-btn" data-type="${item.id}">
+                    <i class="fas fa-chart-bar"></i> 
+                    <span class="analysis-title">${item.displayName || '新建分析'}</span>
+                </button>
+                <button class="ai-settings-btn" data-type="${item.id}" title="设置分析">
+                    <i class="fas fa-cog"></i>
+                </button>
             </div>
         `;
         

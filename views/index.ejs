@@ -4,15 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>聊天记录查询</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <!-- 头部 -->
-        <header class="header">
-            <div class="header-content">
-                <h1><i class="fas fa-comments"></i> 聊天记录查询</h1>
+        <!-- 头部操作栏 -->
+        <header class="top-toolbar">
+            <div class="toolbar-left">
+                <h1><i class="fas fa-comments"></i> 聊天记录查询系统</h1>
+                <span class="version-badge">v1.5.1</span>
+            </div>
+            <div class="toolbar-center">
+                <div class="quick-actions-toolbar">
+                    <button id="loadContactsBtn" class="toolbar-btn">
+                        <i class="fas fa-users"></i> 联系人
+                    </button>
+                    <button id="loadChatroomsBtn" class="toolbar-btn">
+                        <i class="fas fa-comments"></i> 群聊
+                    </button>
+                    <button id="loadSessionsBtn" class="toolbar-btn">
+                        <i class="fas fa-clock"></i> 最近会话
+                    </button>
+                </div>
+            </div>
+            <div class="toolbar-right">
                 <div class="status-indicator" id="statusIndicator">
                     <span class="status-dot"></span>
                     <span class="status-text">连接状态检查中...</span>
@@ -20,227 +36,224 @@
             </div>
         </header>
 
-        <!-- 主内容区 -->
-        <div class="main-content">
-            <!-- 侧边栏 -->
-            <aside class="sidebar">
-                <!-- AI智能分析 - 移到顶部，作为主要功能 -->
-                <div class="sidebar-section ai-featured-section">
-                    <h3><i class="fas fa-brain"></i> 🤖 AI 智能分析</h3>
-                    <div class="ai-analysis">
-                        <div class="ai-btn-group">
-                            <button id="analyzeGroup1Btn" class="ai-btn" data-group="AI 编程互助会 07 群" data-type="programming">
-                                <i class="fas fa-code"></i> 编程群分析
-                            </button>
-                            <button class="ai-settings-btn" data-type="programming" title="设置编程群分析">
-                                <i class="fas fa-cog"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="ai-btn-group">
-                            <button id="analyzeGroup2Btn" class="ai-btn" data-group="小朋友学科学" data-type="science">
-                                <i class="fas fa-flask"></i> 科学群分析
-                            </button>
-                            <button class="ai-settings-btn" data-type="science" title="设置科学群分析">
-                                <i class="fas fa-cog"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="ai-btn-group">
-                            <button id="analyzeGroup3Btn" class="ai-btn" data-group="松节油读者群" data-type="reading">
-                                <i class="fas fa-book"></i> 读者群分析
-                            </button>
-                            <button class="ai-settings-btn" data-type="reading" title="设置读者群分析">
-                                <i class="fas fa-cog"></i>
+        <!-- 中部：AI智能分析主控区 -->
+        <section class="ai-main-section">
+            <div class="ai-section-header">
+                <h2><i class="fas fa-brain"></i> 🤖 AI 智能分析中心</h2>
+                <div class="ai-section-actions">
+                    <button id="exportBtn" class="toolbar-btn" disabled>
+                        <i class="fas fa-download"></i> 导出分析
+                    </button>
+                    <button id="refreshBtn" class="toolbar-btn">
+                        <i class="fas fa-refresh"></i> 刷新
+                    </button>
+                </div>
+            </div>
+            
+            <div class="ai-control-panel">
+                <!-- 一键全分析区域 -->
+                <div class="batch-analysis-section">
+                    <button id="batchAnalysisBtn" class="batch-analysis-btn">
+                        <i class="fas fa-magic"></i> 一键全分析
+                    </button>
+                    
+                    <!-- 批量分析进度显示 -->
+                    <div class="batch-progress" id="batchProgress" style="display: none;">
+                        <div class="progress-header">
+                            <span class="progress-title">正在批量分析...</span>
+                            <button class="cancel-batch-btn" id="cancelBatchBtn" title="取消批量分析">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
-                        
-
-                        
-                        <!-- 动态分析项容器 -->
-                        <div id="dynamicAnalysisContainer"></div>
-                        
-                        <!-- 新增分析项按钮 -->
-                        <div class="add-analysis-section">
-                            <button id="addAnalysisBtn" class="add-analysis-btn">
-                                <i class="fas fa-plus"></i> 新增分析项
-                            </button>
-                        </div>
-                        
-                        <!-- 一键全分析按钮 -->
-                        <div class="batch-analysis-section">
-                            <button id="batchAnalysisBtn" class="batch-analysis-btn">
-                                <i class="fas fa-magic"></i> 一键全分析
-                            </button>
-                        </div>
-                        
-                        <!-- 批量分析进度显示 -->
-                        <div class="batch-progress" id="batchProgress" style="display: none;">
-                            <div class="progress-header">
-                                <span class="progress-title">正在批量分析...</span>
-                                <button class="cancel-batch-btn" id="cancelBatchBtn" title="取消批量分析">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                        <div class="progress-info">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="progressBar"></div>
                             </div>
-                            <div class="progress-info">
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar" id="progressBar"></div>
-                                </div>
-                                <div class="progress-text" id="progressText">准备开始...</div>
-                            </div>
-                            <div class="current-analysis" id="currentAnalysis">
-                                <span class="analysis-name"></span>
-                            </div>
+                            <div class="progress-text" id="progressText">准备开始...</div>
+                        </div>
+                        <div class="current-analysis" id="currentAnalysis">
+                            <span class="analysis-name"></span>
                         </div>
                     </div>
-                    <div class="ai-status" id="aiStatus" style="display: none;">
-                        <div class="ai-loading">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <span>AI正在分析中...</span>
-                        </div>
+                </div>
+                
+                <!-- AI分析按钮组 -->
+                <div class="ai-analysis-grid">
+                    <div class="ai-btn-group">
+                        <button id="analyzeGroup1Btn" class="ai-btn" data-group="AI 编程互助会 07 群" data-type="programming">
+                            <i class="fas fa-code"></i> 编程群分析
+                        </button>
+                        <button class="ai-settings-btn" data-type="programming" title="设置编程群分析">
+                            <i class="fas fa-cog"></i>
+                        </button>
                     </div>
                     
-                    <!-- 自定义分析表单 -->
-                    <div class="custom-analysis-form" id="customAnalysisForm">
-                        <div class="form-group">
-                            <label for="customTimeRange">时间范围：</label>
-                            <select id="customTimeRange" name="customTimeRange">
-                                <option value="yesterday">昨天 (2025-06-15)</option>
-                                <option value="2025-06-14~2025-06-14">前天 (2025-06-14)</option>
-                                <option value="2025-06-10~2025-06-16">最近一周</option>
-                                <option value="2025-06-01~2025-06-16">本月</option>
-                                <option value="2024-01-01~2025-12-31">全部时间</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="customGroup">选择群聊：</label>
-                            <select id="customGroup" name="customGroup">
-                                <option value="">请选择群聊</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="customPrompt">自定义分析提示词：</label>
-                            <div class="prompt-actions" style="margin-bottom: 0.5rem;">
-                                <button type="button" class="preset-btn" onclick="fillPresetPrompt('chatEssenceReport')" style="background: #f97316; color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
-                                    📋 填入聊天精华报告模板
+                    <div class="ai-btn-group">
+                        <button id="analyzeGroup2Btn" class="ai-btn" data-group="小朋友学科学" data-type="science">
+                            <i class="fas fa-flask"></i> 科学群分析
+                        </button>
+                        <button class="ai-settings-btn" data-type="science" title="设置科学群分析">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="ai-btn-group">
+                        <button id="analyzeGroup3Btn" class="ai-btn" data-group="松节油读者群" data-type="reading">
+                            <i class="fas fa-book"></i> 读者群分析
+                        </button>
+                        <button class="ai-settings-btn" data-type="reading" title="设置读者群分析">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 动态分析项容器 -->
+                    <div id="dynamicAnalysisContainer"></div>
+                    
+                    <!-- 新增分析项按钮 -->
+                    <button id="addAnalysisBtn" class="add-analysis-btn">
+                        <i class="fas fa-plus"></i> 新增分析项
+                    </button>
+                </div>
+            </div>
+            
+            <!-- AI状态显示 -->
+            <div class="ai-status" id="aiStatus" style="display: none;">
+                <div class="ai-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>AI正在分析中...</span>
+                </div>
+            </div>
+            
+            <!-- 自定义分析表单 -->
+            <div class="custom-analysis-form" id="customAnalysisForm">
+                <div class="form-group">
+                    <label for="customTimeRange">时间范围：</label>
+                    <select id="customTimeRange" name="customTimeRange">
+                        <option value="yesterday">昨天 (2025-06-15)</option>
+                        <option value="2025-06-14~2025-06-14">前天 (2025-06-14)</option>
+                        <option value="2025-06-10~2025-06-16">最近一周</option>
+                        <option value="2025-06-01~2025-06-16">本月</option>
+                        <option value="2024-01-01~2025-12-31">全部时间</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="customGroup">选择群聊：</label>
+                    <select id="customGroup" name="customGroup">
+                        <option value="">请选择群聊</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="customPrompt">自定义分析提示词：</label>
+                    <div class="prompt-actions" style="margin-bottom: 0.5rem;">
+                        <button type="button" class="preset-btn" onclick="fillPresetPrompt('chatEssenceReport')" style="background: #f97316; color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">
+                            📋 填入聊天精华报告模板
+                        </button>
+                    </div>
+                    <textarea id="customPrompt" name="customPrompt" placeholder="请输入您希望AI分析的具体内容，例如：分析最近一周的讨论话题分布、生成词云图、统计发言频率等..."></textarea>
+                </div>
+                <button type="button" id="executeCustomAnalysis" class="ai-btn">
+                    <i class="fas fa-play"></i> 执行分析
+                </button>
+            </div>
+        </section>
+
+        <!-- 分析历史记录区域 -->
+        <section class="history-section">
+            <div class="panel-header">
+                <h3><i class="fas fa-history"></i> 📊 分析历史记录</h3>
+            </div>
+            <div class="analysis-history" id="analysisHistory">
+                <p class="loading-history">正在加载历史记录...</p>
+            </div>
+        </section>
+
+        <!-- 聊天记录查询区域 -->
+        <section class="chat-section">
+            <div class="panel-header">
+                <h3><i class="fas fa-search"></i> 聊天记录查询</h3>
+            </div>
+            
+            <main class="chat-panel">
+                
+                <!-- 搜索筛选表单 -->
+                <div class="search-controls">
+                    <form id="searchForm" class="search-form-horizontal">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="timeRange">时间范围</label>
+                                <select id="timeRange" name="timeRange">
+                                    <option value="month" selected>最近一月</option>
+                                    <option value="today">今天</option>
+                                    <option value="yesterday">昨天</option>
+                                    <option value="week">最近一周</option>
+                                    <option value="custom">自定义</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group custom-time" id="customTimeGroup" style="display: none;">
+                                <label for="startDate">开始日期</label>
+                                <input type="date" id="startDate" name="startDate">
+                                <label for="endDate">结束日期</label>
+                                <input type="date" id="endDate" name="endDate">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="talkerSelect">聊天对象</label>
+                                <select id="talkerSelect" name="talker">
+                                    <option value="">选择聊天对象</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="limitSelect">显示数量</label>
+                                <select id="limitSelect" name="limit">
+                                    <option value="20">20条</option>
+                                    <option value="50" selected>50条</option>
+                                    <option value="100">100条</option>
+                                    <option value="200">200条</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="submit" class="search-btn">
+                                    <i class="fas fa-search"></i> 查询
                                 </button>
                             </div>
-                            <textarea id="customPrompt" name="customPrompt" placeholder="请输入您希望AI分析的具体内容，例如：分析最近一周的讨论话题分布、生成词云图、统计发言频率等..."></textarea>
                         </div>
-                        <button type="button" id="executeCustomAnalysis" class="ai-btn">
-                            <i class="fas fa-play"></i> 执行分析
-                        </button>
-                    </div>
-                </div>
-
-                <!-- AI分析历史记录 -->
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-history"></i> 📊 分析历史记录</h3>
-                    <div class="analysis-history" id="analysisHistory">
-                        <p class="loading-history">正在加载历史记录...</p>
-                    </div>
-                </div>
-
-                <!-- 快捷访问功能 -->
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-list"></i> 快捷访问</h3>
-                    <div class="quick-actions">
-                        <button id="loadContactsBtn" class="action-btn">
-                            <i class="fas fa-users"></i> 加载联系人
-                        </button>
-                        <button id="loadChatroomsBtn" class="action-btn">
-                            <i class="fas fa-comments"></i> 加载群聊
-                        </button>
-                        <button id="loadSessionsBtn" class="action-btn">
-                            <i class="fas fa-clock"></i> 最近会话
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 搜索筛选功能 -->
-                <div class="sidebar-section">
-                    <h3><i class="fas fa-search"></i> 搜索筛选</h3>
-                    <form id="searchForm" class="search-form">
-                        <div class="form-group">
-                            <label for="timeRange">时间范围</label>
-                            <select id="timeRange" name="timeRange">
-                                <option value="month" selected>最近一月</option>
-                                <option value="today">今天</option>
-                                <option value="yesterday">昨天</option>
-                                <option value="week">最近一周</option>
-                                <option value="custom">自定义</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group custom-time" id="customTimeGroup" style="display: none;">
-                            <label for="startDate">开始日期</label>
-                            <input type="date" id="startDate" name="startDate">
-                            <label for="endDate">结束日期</label>
-                            <input type="date" id="endDate" name="endDate">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="talkerSelect">聊天对象</label>
-                            <select id="talkerSelect" name="talker">
-                                <option value="">选择聊天对象</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="limitSelect">显示数量</label>
-                            <select id="limitSelect" name="limit">
-                                <option value="20">20条</option>
-                                <option value="50" selected>50条</option>
-                                <option value="100">100条</option>
-                                <option value="200">200条</option>
-                            </select>
-                        </div>
-
-                        <button type="submit" class="search-btn">
-                            <i class="fas fa-search"></i> 查询聊天记录
-                        </button>
                     </form>
                 </div>
-            </aside>
 
-            <!-- 聊天记录显示区域 -->
-            <main class="chat-area">
-                <div class="chat-header">
-                    <h2 id="chatTitle">聊天记录</h2>
-                    <div class="chat-controls">
-                        <button id="exportBtn" class="control-btn" disabled>
-                            <i class="fas fa-download"></i> 导出
-                        </button>
-                        <button id="refreshBtn" class="control-btn">
-                            <i class="fas fa-refresh"></i> 刷新
-                        </button>
+                <!-- 聊天记录显示区域 -->
+                <div class="chat-content">
+                    <div class="chat-header">
+                        <h4 id="chatTitle">聊天记录</h4>
                     </div>
-                </div>
 
-                <div class="chat-messages" id="chatMessages">
-                    <div class="welcome-message">
-                        <i class="fas fa-comments fa-3x"></i>
-                        <h3>欢迎使用聊天记录查询</h3>
-                        <p>请在左侧选择筛选条件后点击查询按钮</p>
-                        <div class="tips">
-                            <h4>使用提示：</h4>
-                            <ul>
-                                <li>首先点击"加载联系人"或"加载群聊"获取聊天对象列表</li>
-                                <li>选择时间范围和聊天对象进行精确查询</li>
-                                <li>支持查看图片、语音等多媒体消息</li>
-                                <li>可以导出查询结果为文本格式</li>
-                            </ul>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="welcome-message">
+                            <i class="fas fa-comments fa-3x"></i>
+                            <h3>欢迎使用聊天记录查询</h3>
+                            <p>请在上方选择筛选条件后点击查询按钮</p>
+                            <div class="tips">
+                                <h4>使用提示：</h4>
+                                <ul>
+                                    <li>首先点击顶部"联系人"或"群聊"获取聊天对象列表</li>
+                                    <li>选择时间范围和聊天对象进行精确查询</li>
+                                    <li>支持查看图片、语音等多媒体消息</li>
+                                    <li>可以导出查询结果为文本格式</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="pagination" id="pagination" style="display: none;">
-                    <button id="prevBtn" class="page-btn" disabled>上一页</button>
-                    <span id="pageInfo">第 1 页</span>
-                    <button id="nextBtn" class="page-btn" disabled>下一页</button>
+                    <div class="pagination" id="pagination" style="display: none;">
+                        <button id="prevBtn" class="page-btn" disabled>上一页</button>
+                        <span id="pageInfo">第 1 页</span>
+                        <button id="nextBtn" class="page-btn" disabled>下一页</button>
+                    </div>
                 </div>
             </main>
-        </div>
+        </section>
     </div>
 
     <!-- 加载动画 -->
