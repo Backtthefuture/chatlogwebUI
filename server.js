@@ -5,6 +5,7 @@ const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const moment = require('moment');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -197,6 +198,55 @@ app.get('/api/media', async (req, res) => {
   }
 });
 
+// 历史记录管理
+const HISTORY_DIR = path.join(__dirname, 'ai_analysis_history');
+if (!fs.existsSync(HISTORY_DIR)) {
+  fs.mkdirSync(HISTORY_DIR, { recursive: true });
+}
+
+// 保存分析历史记录
+function saveAnalysisHistory(metadata, analysisContent) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const filename = `${metadata.groupName.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_')}_${metadata.timeRange.replace(/[^0-9-]/g, '_')}_${timestamp}.json`;
+  const filepath = path.join(HISTORY_DIR, filename);
+  
+  const historyRecord = {
+    ...metadata,
+    content: analysisContent,
+    savedAt: new Date().toISOString()
+  };
+  
+  fs.writeFileSync(filepath, JSON.stringify(historyRecord, null, 2), 'utf8');
+  return filename.replace('.json', '');
+}
+
+// 获取分析历史记录列表
+function getAnalysisHistory() {
+  try {
+    const files = fs.readdirSync(HISTORY_DIR)
+      .filter(file => file.endsWith('.json'))
+      .map(file => {
+        const filepath = path.join(HISTORY_DIR, file);
+        const content = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+        return {
+          id: file.replace('.json', ''),
+          title: `${content.groupName} - ${content.timeRange}`,
+          timestamp: content.savedAt,
+          analysisType: content.analysisType,
+          messageCount: content.messageCount,
+          groupName: content.groupName,
+          timeRange: content.timeRange
+        };
+      })
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    return files;
+  } catch (error) {
+    console.error('获取历史记录失败:', error);
+    return [];
+  }
+}
+
 // AI分析相关函数
 async function getChatData(talker, timeRange = '2024-01-01~2025-12-31') {
   try {
@@ -288,7 +338,7 @@ ${customPrompt}`;
 请基于以上聊天数据进行分析。`;
 }
 
-// AI分析接口
+// AI分析接口（修改为返回historyId）
 app.post('/api/ai-analysis', async (req, res) => {
   try {
     const { groupName, analysisType, customPrompt, timeRange } = req.body;
@@ -299,26 +349,15 @@ app.post('/api/ai-analysis', async (req, res) => {
       return res.status(400).json({ error: '请指定群聊名称' });
     }
 
-    // 显示正在分析状态
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'
-    });
-
-    res.write(`data: ${JSON.stringify({ status: 'loading', message: '正在获取聊天数据...' })}\n\n`);
-
     // 获取聊天数据
     const chatData = await getChatData(groupName, timeRange || '2024-01-01~2025-12-31');
     
     if (!chatData || chatData.length === 0) {
-      res.write(`data: ${JSON.stringify({ status: 'error', message: '未找到聊天数据' })}\n\n`);
-      res.end();
-      return;
+      return res.json({ 
+        success: false, 
+        error: '未找到聊天数据，请检查时间范围和群聊名称是否正确' 
+      });
     }
-
-    res.write(`data: ${JSON.stringify({ status: 'loading', message: '正在调用AI分析...' })}\n\n`);
 
     // 生成提示词
     const prompt = generatePromptTemplate(analysisType, chatData, customPrompt);
@@ -329,31 +368,44 @@ app.post('/api/ai-analysis', async (req, res) => {
 2. CSS样式直接写在<style>标签内
 3. JavaScript代码直接写在<script>标签内
 4. 使用CDN引入必要的图表库（如Chart.js、D3.js等）
-5. 确保页面在iframe中能正常显示
-6. 页面要美观、专业、响应式
-7. 包含真实的数据分析和可视化
-8. 不要使用任何外部文件引用
+5. 页面要美观、专业、响应式
+6. 包含真实的数据分析和可视化
+7. 不要使用任何外部文件引用
+8. 使用暖色系设计风格
 
 直接返回完整的HTML代码，不要有任何其他说明文字。`;
 
     // 调用DeepSeek API
     const htmlResult = await callDeepSeekAPI(prompt, systemPrompt);
     
-    res.write(`data: ${JSON.stringify({ 
-      status: 'success', 
-      result: htmlResult,
+    // 保存到历史记录
+    const metadata = {
+      groupName,
+      analysisType,
+      timeRange,
+      messageCount: chatData.length,
+      timestamp: new Date().toISOString(),
       title: `${groupName} - ${getAnalysisTitle(analysisType)}`
-    })}\n\n`);
+    };
     
-    res.end();
+    const historyId = saveAnalysisHistory(metadata, htmlResult);
+    
+    res.json({ 
+      success: true, 
+      historyId: historyId,
+      title: metadata.title,
+      metadata: metadata
+    });
 
   } catch (error) {
     console.error('AI分析失败:', error.message);
-    res.write(`data: ${JSON.stringify({ 
-      status: 'error', 
-      message: error.message || 'AI分析失败，请稍后重试' 
-    })}\n\n`);
-    res.end();
+    if (error.code === 'ECONNABORTED') {
+      res.json({ success: false, error: '分析超时，请稍后重试' });
+    } else if (error.response?.status === 429) {
+      res.json({ success: false, error: 'API调用频率过高，请稍后重试' });
+    } else {
+      res.json({ success: false, error: '分析失败: ' + error.message });
+    }
   }
 });
 
@@ -366,6 +418,82 @@ function getAnalysisTitle(analysisType) {
   };
   return titles[analysisType] || '聊天数据分析';
 }
+
+// 获取分析历史记录接口
+app.get('/api/analysis-history', (req, res) => {
+  try {
+    const history = getAnalysisHistory();
+    res.json({ success: true, history });
+  } catch (error) {
+    console.error('获取历史记录失败:', error);
+    res.json({ success: false, error: '获取历史记录失败' });
+  }
+});
+
+// 获取特定分析记录接口
+app.get('/api/analysis-history/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const filepath = path.join(HISTORY_DIR, `${id}.json`);
+    
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ success: false, error: '分析记录不存在' });
+    }
+    
+    const content = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    res.json({ success: true, data: content });
+  } catch (error) {
+    console.error('获取分析记录失败:', error);
+    res.status(500).json({ success: false, error: '获取分析记录失败' });
+  }
+});
+
+// 新页面展示分析结果
+app.get('/analysis/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const filepath = path.join(HISTORY_DIR, `${id}.json`);
+    
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>分析记录不存在</title>
+          <meta charset="utf-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h1>❌ 分析记录不存在</h1>
+          <p>请检查链接是否正确</p>
+          <button onclick="window.close()">关闭窗口</button>
+        </body>
+        </html>
+      `);
+    }
+    
+    const record = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    
+    // 直接返回HTML内容
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(record.content);
+  } catch (error) {
+    console.error('展示分析结果失败:', error);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>展示失败</title>
+        <meta charset="utf-8">
+      </head>
+      <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+        <h1>❌ 展示分析结果失败</h1>
+        <p>${error.message}</p>
+        <button onclick="window.close()">关闭窗口</button>
+      </body>
+      </html>
+    `);
+  }
+});
 
 // 测试DeepSeek API密钥的接口
 app.get('/api/test-deepseek', async (req, res) => {

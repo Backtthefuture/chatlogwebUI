@@ -11,6 +11,7 @@ class ChatlogApp {
         this.bindEvents();
         this.checkStatus();
         this.initDatePickers();
+        this.loadAnalysisHistory();
     }
 
     // 绑定事件监听器
@@ -736,27 +737,19 @@ class ChatlogApp {
                 throw new Error('AI分析请求失败');
             }
 
-            // 处理Server-Sent Events响应
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            this.handleAIAnalysisProgress(data);
-                        } catch (e) {
-                            console.warn('解析SSE数据失败:', e);
-                        }
-                    }
-                }
+            const result = await response.json();
+            
+            if (result.success) {
+                // 新窗口打开分析结果
+                const analysisUrl = `/analysis/${result.historyId}`;
+                window.open(analysisUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                
+                this.showMessage(`分析完成！已在新窗口打开：${result.title}`, 'success');
+                
+                // 刷新历史记录
+                this.loadAnalysisHistory();
+            } else {
+                throw new Error(result.error || '分析失败');
             }
 
         } catch (error) {
@@ -890,27 +883,22 @@ class ChatlogApp {
                 throw new Error('自定义分析请求失败');
             }
 
-            // 处理Server-Sent Events响应
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            this.handleAIAnalysisProgress(data);
-                        } catch (e) {
-                            console.warn('解析SSE数据失败:', e);
-                        }
-                    }
-                }
+            const result = await response.json();
+            
+            if (result.success) {
+                // 新窗口打开分析结果
+                const analysisUrl = `/analysis/${result.historyId}`;
+                window.open(analysisUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                
+                this.showMessage(`分析完成！已在新窗口打开：${result.title}`, 'success');
+                
+                // 刷新历史记录
+                this.loadAnalysisHistory();
+                
+                // 隐藏自定义分析表单
+                this.toggleCustomAnalysisForm();
+            } else {
+                throw new Error(result.error || '分析失败');
             }
 
         } catch (error) {
@@ -920,6 +908,78 @@ class ChatlogApp {
             this.showAILoading(false);
             this.setAIButtonsEnabled(true);
         }
+    }
+
+    // 加载分析历史记录
+    async loadAnalysisHistory() {
+        try {
+            const response = await fetch('/api/analysis-history');
+            const result = await response.json();
+            
+            if (result.success) {
+                this.displayAnalysisHistory(result.history);
+            } else {
+                console.error('加载历史记录失败:', result.error);
+            }
+        } catch (error) {
+            console.error('加载历史记录失败:', error);
+        }
+    }
+
+    // 显示分析历史记录
+    displayAnalysisHistory(history) {
+        const historyContainer = document.getElementById('analysisHistory');
+        if (!historyContainer) {
+            console.warn('历史记录容器不存在');
+            return;
+        }
+
+        historyContainer.innerHTML = '';
+
+        if (history.length === 0) {
+            historyContainer.innerHTML = '<p class="no-history">暂无分析历史记录</p>';
+            return;
+        }
+
+        const historyList = document.createElement('div');
+        historyList.className = 'history-list';
+
+        history.forEach(record => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            const date = new Date(record.timestamp);
+            const formattedDate = date.toLocaleString('zh-CN');
+            
+            historyItem.innerHTML = `
+                <div class="history-title">${record.title}</div>
+                <div class="history-meta">
+                    <span class="history-date">${formattedDate}</span>
+                    <span class="history-type">${this.getAnalysisTypeLabel(record.analysisType)}</span>
+                    <span class="history-messages">${record.messageCount}条消息</span>
+                </div>
+                <div class="history-actions">
+                    <button onclick="window.open('/analysis/${record.id}', '_blank')" class="view-btn">
+                        <i class="fas fa-eye"></i> 查看
+                    </button>
+                </div>
+            `;
+            
+            historyList.appendChild(historyItem);
+        });
+
+        historyContainer.appendChild(historyList);
+    }
+
+    // 获取分析类型标签
+    getAnalysisTypeLabel(type) {
+        const labels = {
+            'programming': '编程分析',
+            'science': '科学分析',
+            'reading': '阅读分析',
+            'custom': '自定义分析'
+        };
+        return labels[type] || '未知类型';
     }
 }
 

@@ -994,4 +994,125 @@ body {
 .reset-settings-btn:hover {
     background: #edf2f7;
     transform: translateY(-1px);
+}
+
+/* 历史记录样式 */
+.analysis-history {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.loading-history {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    padding: 1rem;
+}
+
+.no-history {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    padding: 1rem;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.history-item {
+    background: linear-gradient(135deg, #fef7e7 0%, #fcd34d 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.history-item:hover {
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    transform: translateY(-2px);
+}
+
+.history-title {
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.history-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.history-date {
+    font-size: 0.75rem;
+    color: #78350f;
+}
+
+.history-type {
+    font-size: 0.75rem;
+    background: #f59e0b;
+    color: white;
+    padding: 0.125rem 0.375rem;
+    border-radius: 12px;
+    align-self: flex-start;
+    font-weight: 500;
+}
+
+.history-messages {
+    font-size: 0.75rem;
+    color: #a16207;
+}
+
+.history-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.view-btn {
+    background: #f97316;
+    color: white;
+    border: none;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.view-btn:hover {
+    background: #ea580c;
+    transform: scale(1.05);
+}
+
+.view-btn i {
+    font-size: 0.75rem;
+}
+
+/* 历史记录滚动条样式 */
+.analysis-history::-webkit-scrollbar {
+    width: 6px;
+}
+
+.analysis-history::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.analysis-history::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.analysis-history::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 } 
