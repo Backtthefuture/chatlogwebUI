@@ -1126,7 +1126,7 @@ body {
 }
 
 .add-analysis-btn {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -1138,13 +1138,28 @@ body {
     gap: 0.5rem;
     margin: 0 auto;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+    position: relative;
+    overflow: hidden;
 }
 
 .add-analysis-btn:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.add-analysis-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.add-analysis-btn:hover::before {
+    left: 100%;
 }
 
 .add-analysis-btn i {
@@ -1171,22 +1186,61 @@ body {
     transform: translateY(-1px);
 }
 
-/* 动态分析项样式 */
+/* 动态分析项样式 - 与默认分析项保持一致 */
 .dynamic-analysis-item {
     margin-bottom: 1rem;
 }
 
-.dynamic-analysis-item .ai-btn-group {
-    border: 2px dashed #10b981;
-    border-radius: 8px;
-    padding: 0.5rem;
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+/* 可搜索选择框样式 */
+.searchable-select {
+    position: relative;
 }
 
-.dynamic-analysis-item .ai-btn {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+.group-search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px 6px 0 0;
+    font-size: 0.9rem;
+    background: #f9fafb;
+    transition: all 0.3s ease;
 }
 
-.dynamic-analysis-item .ai-btn:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+.group-search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    background: white;
+}
+
+.searchable-select select {
+    border-radius: 0 0 6px 6px !important;
+    border-top: none !important;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.search-results-count {
+    position: absolute;
+    right: 0.75rem;
+    top: 0.6rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.125rem 0.375rem;
+    border-radius: 12px;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+/* 群聊选项高亮样式 */
+.searchable-select option.highlighted {
+    background-color: #fef3c7 !important;
+    color: #92400e !important;
+}
+
+/* 优化选择框在搜索状态下的样式 */
+.searchable-select.searching select {
+    border-color: #667eea;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
 } 

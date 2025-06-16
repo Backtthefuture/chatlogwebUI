@@ -87,9 +87,7 @@ class ChatlogApp {
             this.startAIAnalysis('松节油读者群', 'reading');
         });
         
-        document.getElementById('customAnalyzeBtn').addEventListener('click', () => {
-            this.toggleCustomAnalysisForm();
-        });
+
         
         document.getElementById('executeCustomAnalysis').addEventListener('click', () => {
             this.executeCustomAnalysis();
@@ -1070,8 +1068,18 @@ class ChatlogApp {
         }
         
         const settings = window.aiSettingsManager.getSettings(itemId);
-        if (!settings.groupName) {
-            alert('请先在设置中选择群聊');
+        if (!settings.groupName || !settings.prompt) {
+            // 如果没有配置群聊或提示词，展开自定义分析表单并预填充设置
+            this.toggleCustomAnalysisForm();
+            
+            // 预填充已有的设置
+            if (settings.displayName) {
+                // 可以在这里预填充一些设置到自定义分析表单
+                const customPrompt = document.getElementById('customPrompt');
+                if (customPrompt && settings.prompt) {
+                    customPrompt.value = settings.prompt;
+                }
+            }
             return;
         }
         

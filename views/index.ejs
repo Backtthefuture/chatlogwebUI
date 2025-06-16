@@ -55,14 +55,7 @@
                             </button>
                         </div>
                         
-                        <div class="ai-btn-group">
-                            <button id="customAnalyzeBtn" class="ai-btn" data-type="custom">
-                                <i class="fas fa-chart-line"></i> 自定义分析
-                            </button>
-                            <button class="ai-settings-btn" data-type="custom" title="设置自定义分析">
-                                <i class="fas fa-cog"></i>
-                            </button>
-                        </div>
+
                         
                         <!-- 动态分析项容器 -->
                         <div id="dynamicAnalysisContainer"></div>
@@ -299,9 +292,13 @@
 
                     <div class="settings-group">
                         <label for="settingsGroupName">默认群聊：</label>
-                        <select id="settingsGroupName" name="settingsGroupName">
-                            <option value="">请选择群聊</option>
-                        </select>
+                        <div class="searchable-select">
+                            <input type="text" id="settingsGroupSearch" placeholder="🔍 搜索群聊名称..." class="group-search-input">
+                            <select id="settingsGroupName" name="settingsGroupName">
+                                <option value="">请选择群聊</option>
+                            </select>
+                            <div class="search-results-count" id="searchResultsCount" style="display: none;"></div>
+                        </div>
                     </div>
 
                     <div class="settings-group">

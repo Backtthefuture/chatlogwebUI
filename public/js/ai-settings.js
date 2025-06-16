@@ -20,18 +20,14 @@ class AISettingsManager {
                 groupName: '松节油读者群',
                 prompt: this.getDefaultPrompt('reading'),
                 displayName: '读者群分析'
-            },
-            custom: {
-                timeRange: 'yesterday',
-                groupName: '',
-                prompt: '',
-                displayName: '自定义分析'
             }
         };
         
         // 动态分析项管理
         this.dynamicAnalysisItems = this.loadDynamicItems();
         this.currentEditingType = null;
+        this.originalGroupOptions = []; // 存储原始群聊数据
+        this.searchDebounceTimeout = null; // 搜索防抖计时器
         this.bindEvents();
         
         // 初始化完成后，更新所有按钮的显示名称
@@ -133,6 +129,7 @@ class AISettingsManager {
             const saveBtn = document.getElementById('saveSettingsBtn');
             const resetBtn = document.getElementById('resetSettingsBtn');
             const deleteBtn = document.getElementById('deleteItemBtn');
+            const groupSearch = document.getElementById('settingsGroupSearch');
 
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => {
@@ -169,6 +166,35 @@ class AISettingsManager {
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', () => {
                     this.deleteCurrentItem();
+                });
+            }
+
+            // 群聊搜索功能 - 添加防抖优化
+            if (groupSearch) {
+                groupSearch.addEventListener('input', (e) => {
+                    // 清除之前的防抖计时器
+                    if (this.searchDebounceTimeout) {
+                        clearTimeout(this.searchDebounceTimeout);
+                    }
+                    
+                    // 设置新的防抖计时器
+                    this.searchDebounceTimeout = setTimeout(() => {
+                        this.filterGroupOptions(e.target.value);
+                    }, 200); // 200ms 防抖延迟
+                });
+                
+                groupSearch.addEventListener('focus', () => {
+                    const container = groupSearch.closest('.searchable-select');
+                    if (container) {
+                        container.classList.add('searching');
+                    }
+                });
+                
+                groupSearch.addEventListener('blur', () => {
+                    const container = groupSearch.closest('.searchable-select');
+                    if (container) {
+                        container.classList.remove('searching');
+                    }
                 });
             }
         }, 100);
@@ -364,9 +390,13 @@ class AISettingsManager {
                     </div>
                     <div class="settings-group">
                         <label for="settingsGroupName">选择群聊：</label>
-                        <select id="settingsGroupName">
-                            <option value="">请选择群聊</option>
-                        </select>
+                        <div class="searchable-select">
+                            <input type="text" id="settingsGroupSearch" placeholder="🔍 搜索群聊名称..." class="group-search-input">
+                            <select id="settingsGroupName">
+                                <option value="">请选择群聊</option>
+                            </select>
+                            <div class="search-results-count" id="searchResultsCount" style="display: none;"></div>
+                        </div>
                     </div>
                     <div class="settings-group">
                         <label for="settingsPrompt">自定义提示词：</label>
@@ -399,19 +429,102 @@ class AISettingsManager {
             
             const groupSelect = document.getElementById('settingsGroupName');
             if (groupSelect && response.ok) {
-                // 清空现有选项
-                groupSelect.innerHTML = '<option value="">请选择群聊</option>';
+                // 存储原始群聊数据
+                this.originalGroupOptions = data.map(chatroom => ({
+                    value: chatroom.displayName,
+                    text: `${chatroom.displayName} (${chatroom.userCount}人)`,
+                    searchText: chatroom.displayName.toLowerCase()
+                }));
                 
-                // 添加群聊选项
-                data.forEach(chatroom => {
-                    const option = document.createElement('option');
-                    option.value = chatroom.displayName;
-                    option.textContent = `${chatroom.displayName} (${chatroom.userCount}人)`;
-                    groupSelect.appendChild(option);
-                });
+                // 渲染群聊选项
+                this.renderGroupOptions(this.originalGroupOptions);
             }
         } catch (error) {
             console.error('加载群聊列表失败:', error);
+        }
+    }
+    
+    // 渲染群聊选项 - 优化版本
+    renderGroupOptions(options) {
+        const groupSelect = document.getElementById('settingsGroupName');
+        if (!groupSelect) return;
+        
+        // 保存当前选中的值
+        const currentValue = groupSelect.value;
+        
+        // 使用DocumentFragment批量操作DOM，提高性能
+        const fragment = document.createDocumentFragment();
+        
+        // 添加默认选项
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '请选择群聊';
+        fragment.appendChild(defaultOption);
+        
+        // 批量添加群聊选项
+        options.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.text;
+            fragment.appendChild(optionElement);
+        });
+        
+        // 一次性替换所有选项
+        groupSelect.innerHTML = '';
+        groupSelect.appendChild(fragment);
+        
+        // 恢复之前选中的值
+        if (currentValue) {
+            groupSelect.value = currentValue;
+        }
+        
+        // 更新搜索结果计数
+        this.updateSearchResultsCount(options.length);
+    }
+    
+    // 过滤群聊选项
+    filterGroupOptions(searchTerm) {
+        // 优化性能：缓存DOM元素
+        const groupSelect = document.getElementById('settingsGroupName');
+        if (!groupSelect || !this.originalGroupOptions.length) {
+            return;
+        }
+        
+        let filteredOptions;
+        
+        if (!searchTerm.trim()) {
+            // 空搜索，显示所有选项
+            filteredOptions = this.originalGroupOptions;
+        } else {
+            const searchLower = searchTerm.toLowerCase().trim();
+            // 优化搜索算法：使用更高效的过滤方式
+            filteredOptions = this.originalGroupOptions.filter(option => 
+                option.searchText.indexOf(searchLower) !== -1
+            );
+        }
+        
+        // 只有在结果发生变化时才重新渲染
+        const currentOptionsCount = groupSelect.options.length - 1; // 减去"请选择群聊"选项
+        if (currentOptionsCount !== filteredOptions.length) {
+            this.renderGroupOptions(filteredOptions);
+        }
+        
+        // 更新搜索结果计数
+        this.updateSearchResultsCount(filteredOptions.length);
+    }
+    
+    // 更新搜索结果计数
+    updateSearchResultsCount(count) {
+        const countElement = document.getElementById('searchResultsCount');
+        if (!countElement) return;
+        
+        if (count === this.originalGroupOptions.length) {
+            // 显示全部，隐藏计数
+            countElement.style.display = 'none';
+        } else {
+            // 显示过滤结果计数
+            countElement.textContent = `${count}/${this.originalGroupOptions.length}`;
+            countElement.style.display = 'block';
         }
     }
 
@@ -476,6 +589,14 @@ class AISettingsManager {
         if (modal) {
             modal.classList.remove('show');
         }
+        
+        // 清空搜索框
+        const groupSearch = document.getElementById('settingsGroupSearch');
+        if (groupSearch) {
+            groupSearch.value = '';
+            this.filterGroupOptions(''); // 重置群聊列表
+        }
+        
         this.currentEditingType = null;
     }
 
