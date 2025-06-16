@@ -1268,4 +1268,230 @@ body {
 .searchable-select.searching select {
     border-color: #667eea;
     box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
+}
+
+/* 一键全分析按钮样式 */
+.batch-analysis-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.batch-analysis-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    padding: 0.875rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.batch-analysis-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+    background: linear-gradient(135deg, #218838 0%, #1e9b85 100%);
+}
+
+.batch-analysis-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.batch-analysis-btn i {
+    margin-right: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.batch-analysis-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.batch-analysis-btn:hover::before {
+    left: 100%;
+}
+
+/* 批量分析进度样式 */
+.batch-progress {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.progress-title {
+    font-weight: 600;
+    color: #28a745;
+    font-size: 0.9rem;
+}
+
+.cancel-batch-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    transition: all 0.3s ease;
+}
+
+.cancel-batch-btn:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+.progress-info {
+    margin-bottom: 0.75rem;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.progress-text {
+    font-size: 0.85rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+.current-analysis {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+}
+
+.current-analysis .analysis-name {
+    font-weight: 500;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+/* 批量分析结果汇总样式 */
+.batch-summary {
+    background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%);
+    border: 1px solid #28a745;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.batch-summary.with-errors {
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+    border-color: #f39c12;
+}
+
+.summary-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.summary-header.with-errors {
+    color: #f39c12;
+}
+
+.summary-header i {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.7);
+    padding: 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.summary-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.summary-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.summary-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.summary-btn.secondary {
+    background: #6c757d;
+}
+
+.summary-btn.secondary:hover {
+    background: #5a6268;
 } 

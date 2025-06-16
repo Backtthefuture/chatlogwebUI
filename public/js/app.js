@@ -4,6 +4,20 @@ class ChatlogApp {
         this.pageSize = 50;
         this.currentData = [];
         this.selectedTalker = '';
+        
+        // 批量分析状态管理
+        this.batchAnalysisState = {
+            isRunning: false,
+            isCancelled: false,
+            currentIndex: 0,
+            totalItems: 0,
+            analysisQueue: [],
+            results: {
+                success: [],
+                failed: []
+            }
+        };
+        
         this.init();
     }
 
@@ -100,6 +114,16 @@ class ChatlogApp {
         // 新增分析项按钮
         document.getElementById('addAnalysisBtn').addEventListener('click', () => {
             this.addNewAnalysisItem();
+        });
+        
+        // 一键全分析按钮
+        document.getElementById('batchAnalysisBtn').addEventListener('click', () => {
+            this.startBatchAnalysis();
+        });
+        
+        // 取消批量分析按钮
+        document.getElementById('cancelBatchBtn').addEventListener('click', () => {
+            this.cancelBatchAnalysis();
         });
     }
 
@@ -1140,6 +1164,360 @@ class ChatlogApp {
             console.error('删除分析记录失败:', error);
             this.showMessage('删除失败: ' + error.message, 'error');
         }
+    }
+    
+    // ============ 批量分析功能 ============
+    
+    // 获取所有可用的分析项
+    getAllAnalysisItems() {
+        const analysisItems = [];
+        
+        // 添加默认分析项
+        const defaultItems = [
+            { id: 'programming', name: '编程群分析', type: 'default' },
+            { id: 'science', name: '科学群分析', type: 'default' },
+            { id: 'reading', name: '读者群分析', type: 'default' }
+        ];
+        
+        // 检查每个默认分析项是否有配置和群聊选择
+        defaultItems.forEach(item => {
+            const settings = window.aiSettingsManager?.getSettings(item.id);
+            if (settings && settings.groupName) {
+                analysisItems.push({
+                    id: item.id,
+                    name: settings.displayName || item.name,
+                    groupName: settings.groupName,
+                    analysisType: item.id,
+                    timeRange: window.aiSettingsManager?.getTimeRangeString(item.id) || 'yesterday',
+                    customPrompt: settings.prompt || ''
+                });
+            }
+        });
+        
+        // 添加动态分析项
+        const dynamicItems = window.aiSettingsManager?.dynamicAnalysisItems || [];
+        dynamicItems.forEach(item => {
+            const settings = window.aiSettingsManager?.getSettings(item.id);
+            if (settings && settings.groupName) {
+                analysisItems.push({
+                    id: item.id,
+                    name: settings.displayName || item.name,
+                    groupName: settings.groupName,
+                    analysisType: 'custom',
+                    timeRange: window.aiSettingsManager?.getTimeRangeString(item.id) || 'yesterday',
+                    customPrompt: settings.prompt || ''
+                });
+            }
+        });
+        
+        return analysisItems;
+    }
+    
+    // 开始批量分析
+    async startBatchAnalysis() {
+        console.log('开始批量分析...');
+        
+        // 获取所有可用的分析项
+        const analysisItems = this.getAllAnalysisItems();
+        
+        if (analysisItems.length === 0) {
+            this.showMessage('没有找到可用的分析项，请先配置分析设置', 'error');
+            return;
+        }
+        
+        // 确认对话
+        const confirmMessage = `即将开始批量分析，共 ${analysisItems.length} 个分析项：\n\n${analysisItems.map((item, index) => `${index + 1}. ${item.name} (${item.groupName})`).join('\n')}\n\n分析过程预计需要 ${Math.ceil(analysisItems.length * 2)} 分钟，确定要开始吗？`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        // 初始化批量分析状态
+        this.batchAnalysisState = {
+            isRunning: true,
+            isCancelled: false,
+            currentIndex: 0,
+            totalItems: analysisItems.length,
+            analysisQueue: [...analysisItems],
+            results: {
+                success: [],
+                failed: []
+            }
+        };
+        
+        // 显示进度界面
+        this.showBatchProgress();
+        
+        // 禁用批量分析按钮
+        const batchBtn = document.getElementById('batchAnalysisBtn');
+        if (batchBtn) {
+            batchBtn.disabled = true;
+        }
+        
+        // 开始执行分析队列
+        await this.processBatchAnalysisQueue();
+    }
+    
+    // 处理批量分析队列
+    async processBatchAnalysisQueue() {
+        const state = this.batchAnalysisState;
+        
+        while (state.currentIndex < state.totalItems && !state.isCancelled) {
+            const currentItem = state.analysisQueue[state.currentIndex];
+            
+            // 更新进度显示
+            this.updateBatchProgress(currentItem);
+            
+            try {
+                console.log(`开始分析第 ${state.currentIndex + 1}/${state.totalItems} 项: ${currentItem.name}`);
+                
+                // 执行单个分析
+                const result = await this.executeSingleAnalysis(currentItem);
+                
+                if (result.success) {
+                    state.results.success.push({
+                        ...currentItem,
+                        historyId: result.historyId
+                    });
+                    console.log(`✅ ${currentItem.name} 分析成功`);
+                } else {
+                    state.results.failed.push({
+                        ...currentItem,
+                        error: result.error
+                    });
+                    console.log(`❌ ${currentItem.name} 分析失败: ${result.error}`);
+                }
+            } catch (error) {
+                console.error(`分析 ${currentItem.name} 时发生异常:`, error);
+                state.results.failed.push({
+                    ...currentItem,
+                    error: error.message
+                });
+            }
+            
+            state.currentIndex++;
+            
+            // 分析间隔2.5秒，避免API频率限制
+            if (state.currentIndex < state.totalItems && !state.isCancelled) {
+                console.log('等待 2.5 秒后继续下一个分析...');
+                await this.sleep(2500);
+            }
+        }
+        
+        // 完成批量分析
+        this.completeBatchAnalysis();
+    }
+    
+    // 执行单个分析
+    async executeSingleAnalysis(analysisItem) {
+        try {
+            const response = await fetch('/api/ai-analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    groupName: analysisItem.groupName,
+                    analysisType: analysisItem.analysisType,
+                    customPrompt: analysisItem.customPrompt,
+                    timeRange: analysisItem.timeRange
+                })
+            });
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+    
+    // 显示批量分析进度
+    showBatchProgress() {
+        const progressElement = document.getElementById('batchProgress');
+        if (progressElement) {
+            progressElement.style.display = 'block';
+        }
+        
+        // 初始化进度
+        this.updateProgressBar(0);
+        this.updateProgressText('准备开始批量分析...');
+    }
+    
+    // 更新批量分析进度
+    updateBatchProgress(currentItem) {
+        const state = this.batchAnalysisState;
+        const progress = ((state.currentIndex) / state.totalItems) * 100;
+        
+        this.updateProgressBar(progress);
+        this.updateProgressText(`正在分析 ${state.currentIndex + 1}/${state.totalItems}`);
+        this.updateCurrentAnalysis(currentItem.name);
+    }
+    
+    // 更新进度条
+    updateProgressBar(percentage) {
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) {
+            progressBar.style.width = `${percentage}%`;
+        }
+    }
+    
+    // 更新进度文本
+    updateProgressText(text) {
+        const progressText = document.getElementById('progressText');
+        if (progressText) {
+            progressText.textContent = text;
+        }
+    }
+    
+    // 更新当前分析项显示
+    updateCurrentAnalysis(analysisName) {
+        const currentAnalysis = document.querySelector('#currentAnalysis .analysis-name');
+        if (currentAnalysis) {
+            currentAnalysis.textContent = analysisName;
+        }
+    }
+    
+    // 完成批量分析
+    completeBatchAnalysis() {
+        const state = this.batchAnalysisState;
+        
+        console.log('批量分析完成:', state.results);
+        
+        // 更新进度为100%
+        this.updateProgressBar(100);
+        this.updateProgressText('批量分析完成！');
+        
+        // 显示结果汇总
+        this.showBatchSummary();
+        
+        // 重新加载分析历史
+        setTimeout(() => {
+            this.loadAnalysisHistory();
+        }, 1000);
+        
+        // 重置状态
+        this.resetBatchAnalysisState();
+    }
+    
+    // 显示批量分析结果汇总
+    showBatchSummary() {
+        const state = this.batchAnalysisState;
+        const successCount = state.results.success.length;
+        const failedCount = state.results.failed.length;
+        const hasErrors = failedCount > 0;
+        
+        // 创建汇总HTML
+        const summaryHtml = `
+            <div class="batch-summary ${hasErrors ? 'with-errors' : ''}">
+                <div class="summary-header ${hasErrors ? 'with-errors' : ''}">
+                    <i class="fas ${hasErrors ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i>
+                    <span>批量分析完成</span>
+                </div>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-number" style="color: #28a745;">${successCount}</span>
+                        <div class="stat-label">成功</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" style="color: #dc3545;">${failedCount}</span>
+                        <div class="stat-label">失败</div>
+                    </div>
+                </div>
+                ${failedCount > 0 ? `
+                    <div style="margin-bottom: 0.75rem;">
+                        <strong>失败项目：</strong><br>
+                        ${state.results.failed.map(item => `• ${item.name}: ${item.error}`).join('<br>')}
+                    </div>
+                ` : ''}
+                <div class="summary-actions">
+                    <button class="summary-btn" onclick="window.chatlogApp.viewBatchResults()">
+                        <i class="fas fa-eye"></i> 查看结果
+                    </button>
+                    <button class="summary-btn secondary" onclick="window.chatlogApp.closeBatchSummary()">
+                        <i class="fas fa-times"></i> 关闭
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // 将汇总插入到进度显示后面
+        const batchProgress = document.getElementById('batchProgress');
+        if (batchProgress) {
+            batchProgress.insertAdjacentHTML('afterend', summaryHtml);
+        }
+    }
+    
+    // 查看批量分析结果
+    viewBatchResults() {
+        const state = this.batchAnalysisState;
+        if (state.results.success.length > 0) {
+            // 打开第一个成功的分析结果
+            const firstSuccess = state.results.success[0];
+            if (firstSuccess.historyId) {
+                window.open(`/analysis/${firstSuccess.historyId}`, '_blank', 'width=1200,height=800');
+            }
+        }
+        this.showMessage(`共生成 ${state.results.success.length} 个分析报告，请查看侧边栏历史记录`, 'success');
+    }
+    
+    // 关闭批量分析汇总
+    closeBatchSummary() {
+        const summary = document.querySelector('.batch-summary');
+        if (summary) {
+            summary.remove();
+        }
+        this.hideBatchProgress();
+    }
+    
+    // 取消批量分析
+    cancelBatchAnalysis() {
+        if (confirm('确定要取消批量分析吗？已完成的分析结果将保留。')) {
+            this.batchAnalysisState.isCancelled = true;
+            this.updateProgressText('正在取消...');
+            this.showMessage('批量分析已取消', 'info');
+            
+            setTimeout(() => {
+                this.resetBatchAnalysisState();
+                this.hideBatchProgress();
+            }, 1000);
+        }
+    }
+    
+    // 隐藏批量分析进度
+    hideBatchProgress() {
+        const progressElement = document.getElementById('batchProgress');
+        if (progressElement) {
+            progressElement.style.display = 'none';
+        }
+    }
+    
+    // 重置批量分析状态
+    resetBatchAnalysisState() {
+        this.batchAnalysisState = {
+            isRunning: false,
+            isCancelled: false,
+            currentIndex: 0,
+            totalItems: 0,
+            analysisQueue: [],
+            results: {
+                success: [],
+                failed: []
+            }
+        };
+        
+        // 重新启用批量分析按钮
+        const batchBtn = document.getElementById('batchAnalysisBtn');
+        if (batchBtn) {
+            batchBtn.disabled = false;
+        }
+    }
+    
+    // 工具方法：延迟函数
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
 

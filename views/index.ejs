@@ -66,6 +66,32 @@
                                 <i class="fas fa-plus"></i> 新增分析项
                             </button>
                         </div>
+                        
+                        <!-- 一键全分析按钮 -->
+                        <div class="batch-analysis-section">
+                            <button id="batchAnalysisBtn" class="batch-analysis-btn">
+                                <i class="fas fa-magic"></i> 一键全分析
+                            </button>
+                        </div>
+                        
+                        <!-- 批量分析进度显示 -->
+                        <div class="batch-progress" id="batchProgress" style="display: none;">
+                            <div class="progress-header">
+                                <span class="progress-title">正在批量分析...</span>
+                                <button class="cancel-batch-btn" id="cancelBatchBtn" title="取消批量分析">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="progress-info">
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" id="progressBar"></div>
+                                </div>
+                                <div class="progress-text" id="progressText">准备开始...</div>
+                            </div>
+                            <div class="current-analysis" id="currentAnalysis">
+                                <span class="analysis-name"></span>
+                            </div>
+                        </div>
                     </div>
                     <div class="ai-status" id="aiStatus" style="display: none;">
                         <div class="ai-loading">
