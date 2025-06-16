@@ -1115,4 +1115,78 @@ body {
 
 .analysis-history::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+}
+
+/* 新增分析项样式 */
+.add-analysis-section {
+    padding: 1rem 0;
+    text-align: center;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 1rem;
+}
+
+.add-analysis-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 auto;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.add-analysis-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.add-analysis-btn i {
+    font-size: 1rem;
+}
+
+/* 删除按钮样式 */
+.delete-item-btn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.delete-item-btn:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+}
+
+/* 动态分析项样式 */
+.dynamic-analysis-item {
+    margin-bottom: 1rem;
+}
+
+.dynamic-analysis-item .ai-btn-group {
+    border: 2px dashed #10b981;
+    border-radius: 8px;
+    padding: 0.5rem;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.dynamic-analysis-item .ai-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.dynamic-analysis-item .ai-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
 } 

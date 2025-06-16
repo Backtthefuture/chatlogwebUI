@@ -6,27 +6,59 @@ class AISettingsManager {
             programming: {
                 timeRange: 'yesterday', // 改为昨天
                 groupName: 'AI 编程互助会 07 群',
-                prompt: this.getDefaultPrompt('programming')
+                prompt: this.getDefaultPrompt('programming'),
+                displayName: '编程群分析'
             },
             science: {
                 timeRange: 'yesterday',
                 groupName: '小朋友学科学',
-                prompt: this.getDefaultPrompt('science')
+                prompt: this.getDefaultPrompt('science'),
+                displayName: '科学群分析'
             },
             reading: {
                 timeRange: 'yesterday',
                 groupName: '松节油读者群',
-                prompt: this.getDefaultPrompt('reading')
+                prompt: this.getDefaultPrompt('reading'),
+                displayName: '读者群分析'
             },
             custom: {
                 timeRange: 'yesterday',
                 groupName: '',
-                prompt: ''
+                prompt: '',
+                displayName: '自定义分析'
             }
         };
+        
+        // 动态分析项管理
+        this.dynamicAnalysisItems = this.loadDynamicItems();
         this.currentEditingType = null;
         this.bindEvents();
+        
+        // 初始化完成后，更新所有按钮的显示名称
+        setTimeout(() => {
+            this.initializeDisplayNames();
+        }, 100);
+        
         console.log('AI设置管理器初始化完成');
+    }
+    
+    // 初始化所有按钮的显示名称
+    initializeDisplayNames() {
+        // 更新默认分析项
+        Object.keys(this.defaultSettings).forEach(type => {
+            const settings = this.getSettings(type);
+            if (settings.displayName) {
+                this.updateDisplayName(type, settings.displayName);
+            }
+        });
+        
+        // 更新动态分析项
+        this.dynamicAnalysisItems.forEach(item => {
+            const settings = this.getSettings(item.id);
+            if (settings.displayName) {
+                this.updateDisplayName(item.id, settings.displayName);
+            }
+        });
     }
 
     // 获取默认提示词
@@ -100,6 +132,7 @@ class AISettingsManager {
             const timeRange = document.getElementById('settingsTimeRange');
             const saveBtn = document.getElementById('saveSettingsBtn');
             const resetBtn = document.getElementById('resetSettingsBtn');
+            const deleteBtn = document.getElementById('deleteItemBtn');
 
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => {
@@ -132,12 +165,34 @@ class AISettingsManager {
                     this.resetToDefault();
                 });
             }
+
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => {
+                    this.deleteCurrentItem();
+                });
+            }
         }, 100);
     }
 
     // 获取指定类型的设置
     getSettings(type) {
-        return this.settings[type] || this.defaultSettings[type] || {};
+        // 优先从保存的设置中获取
+        const savedSettings = this.settings[type];
+        
+        // 如果是默认类型，合并默认设置
+        if (this.defaultSettings[type]) {
+            return { ...this.defaultSettings[type], ...savedSettings };
+        }
+        
+        // 如果是动态分析项，从动态分析项数组中获取
+        if (type.startsWith('dynamic_')) {
+            const dynamicItem = this.dynamicAnalysisItems.find(item => item.id === type);
+            if (dynamicItem) {
+                return { ...dynamicItem, ...savedSettings };
+            }
+        }
+        
+        return savedSettings || {};
     }
 
     // 获取时间范围字符串
@@ -198,6 +253,75 @@ class AISettingsManager {
         }
     }
 
+    // 加载动态分析项
+    loadDynamicItems() {
+        try {
+            const saved = localStorage.getItem('dynamicAnalysisItems');
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.warn('加载动态分析项失败:', error);
+            return [];
+        }
+    }
+
+    // 保存动态分析项
+    saveDynamicItems() {
+        try {
+            localStorage.setItem('dynamicAnalysisItems', JSON.stringify(this.dynamicAnalysisItems));
+            console.log('动态分析项已保存');
+        } catch (error) {
+            console.error('保存动态分析项失败:', error);
+        }
+    }
+
+    // 新增动态分析项
+    addDynamicAnalysisItem() {
+        const newId = 'dynamic_' + Date.now();
+        const newItem = {
+            id: newId,
+            displayName: '新建分析',
+            timeRange: 'yesterday',
+            groupName: '',
+            prompt: ''
+        };
+        
+        this.dynamicAnalysisItems.push(newItem);
+        this.saveDynamicItems();
+        
+        // 保存设置
+        this.settings[newId] = { ...newItem };
+        this.saveSettings();
+        
+        return newItem;
+    }
+
+    // 删除动态分析项
+    removeDynamicAnalysisItem(id) {
+        this.dynamicAnalysisItems = this.dynamicAnalysisItems.filter(item => item.id !== id);
+        this.saveDynamicItems();
+        
+        // 删除设置
+        delete this.settings[id];
+        this.saveSettings();
+    }
+
+    // 获取所有分析项（包括默认和动态）
+    getAllAnalysisItems() {
+        const defaultItems = Object.keys(this.defaultSettings).map(type => ({
+            id: type,
+            type: 'default',
+            ...this.getSettings(type)
+        }));
+        
+        const dynamicItems = this.dynamicAnalysisItems.map(item => ({
+            ...item,
+            type: 'dynamic',
+            ...this.getSettings(item.id)
+        }));
+        
+        return [...defaultItems, ...dynamicItems];
+    }
+
     // 创建设置模态框HTML（如果不存在）
     createModalIfNotExists() {
         if (document.getElementById('aiSettingsModal')) {
@@ -212,6 +336,10 @@ class AISettingsManager {
                     <button id="closeAiSettings" class="ai-settings-close">&times;</button>
                 </div>
                 <div class="ai-settings-body">
+                    <div class="settings-group">
+                        <label for="settingsDisplayName">显示名称：</label>
+                        <input type="text" id="settingsDisplayName" placeholder="请输入显示在首页的名称">
+                    </div>
                     <div class="settings-group">
                         <label for="settingsTimeRange">时间范围：</label>
                         <select id="settingsTimeRange">
@@ -245,6 +373,9 @@ class AISettingsManager {
                         <textarea id="settingsPrompt" rows="8" placeholder="请输入自定义提示词"></textarea>
                     </div>
                     <div class="settings-actions">
+                        <button id="deleteItemBtn" class="delete-item-btn" style="display: none;">
+                            <i class="fas fa-trash"></i> 删除此项
+                        </button>
                         <button id="resetSettingsBtn" class="reset-settings-btn">
                             <i class="fas fa-undo"></i> 恢复默认
                         </button>
@@ -292,9 +423,11 @@ class AISettingsManager {
         
         const modal = document.getElementById('aiSettingsModal');
         const title = document.getElementById('settingsModalTitle');
+        const displayName = document.getElementById('settingsDisplayName');
         const timeRange = document.getElementById('settingsTimeRange');
         const groupName = document.getElementById('settingsGroupName');
         const prompt = document.getElementById('settingsPrompt');
+        const deleteBtn = document.getElementById('deleteItemBtn');
         
         if (!modal) {
             console.error('设置模态框不存在');
@@ -310,11 +443,18 @@ class AISettingsManager {
         };
         if (title) title.textContent = titles[type] || 'AI分析设置';
 
+        // 判断是否为动态分析项，决定是否显示删除按钮
+        const isDynamic = type.startsWith('dynamic_');
+        if (deleteBtn) {
+            deleteBtn.style.display = isDynamic ? 'inline-block' : 'none';
+        }
+
         // 加载群聊列表
         this.loadChatrooms();
 
         // 填充当前设置
         const settings = this.getSettings(type);
+        if (displayName) displayName.value = settings.displayName || '';
         if (timeRange) timeRange.value = settings.timeRange || 'yesterday';
         if (groupName) {
             // 延迟设置值，等待群聊列表加载完成
@@ -366,6 +506,7 @@ class AISettingsManager {
     saveCurrentSettings() {
         if (!this.currentEditingType) return;
 
+        const displayName = document.getElementById('settingsDisplayName')?.value;
         const timeRange = document.getElementById('settingsTimeRange')?.value;
         const groupName = document.getElementById('settingsGroupName')?.value;
         const prompt = document.getElementById('settingsPrompt')?.value;
@@ -373,6 +514,7 @@ class AISettingsManager {
         const endDate = document.getElementById('settingsEndDate')?.value;
 
         const newSettings = {
+            displayName: displayName || '',
             timeRange: timeRange || 'week',
             groupName: groupName || '',
             prompt: prompt || ''
@@ -387,9 +529,94 @@ class AISettingsManager {
         this.settings[this.currentEditingType] = newSettings;
         this.saveSettings();
         
+        // 如果是动态分析项，更新动态分析项数组
+        if (this.currentEditingType.startsWith('dynamic_')) {
+            const dynamicItem = this.dynamicAnalysisItems.find(item => item.id === this.currentEditingType);
+            if (dynamicItem) {
+                dynamicItem.displayName = newSettings.displayName;
+                dynamicItem.timeRange = newSettings.timeRange;
+                dynamicItem.groupName = newSettings.groupName;
+                dynamicItem.prompt = newSettings.prompt;
+                this.saveDynamicItems();
+            }
+        }
+        
+        // 更新首页显示
+        this.updateDisplayName(this.currentEditingType, newSettings.displayName);
+        
         console.log('设置已保存:', this.currentEditingType, newSettings);
         alert('设置已保存');
         this.closeSettings();
+    }
+    
+    // 删除当前分析项
+    deleteCurrentItem() {
+        if (!this.currentEditingType || !this.currentEditingType.startsWith('dynamic_')) {
+            alert('只能删除自定义添加的分析项');
+            return;
+        }
+        
+        if (confirm('确定要删除这个分析项吗？此操作不可恢复。')) {
+            this.removeDynamicAnalysisItem(this.currentEditingType);
+            
+            // 从页面中移除对应的UI元素
+            this.removeAnalysisItemFromUI(this.currentEditingType);
+            
+            this.closeSettings();
+        }
+    }
+    
+    // 更新首页显示名称
+    updateDisplayName(type, displayName) {
+        if (!displayName) return;
+        
+        // 查找对应的分析按钮
+        const analysisButton = document.querySelector(`button[data-type="${type}"]:not(.ai-settings-btn)`);
+        
+        if (analysisButton) {
+            // 查找按钮内的图标
+            const icon = analysisButton.querySelector('i');
+            const iconClass = icon ? icon.className : '';
+            
+            // 更新按钮文本，保留图标
+            if (icon) {
+                analysisButton.innerHTML = `<i class="${iconClass}"></i> ${displayName}`;
+            } else {
+                // 如果是动态分析项，可能有span包装
+                const titleSpan = analysisButton.querySelector('.analysis-title');
+                if (titleSpan) {
+                    titleSpan.textContent = displayName;
+                } else {
+                    analysisButton.textContent = displayName;
+                }
+            }
+            
+            console.log(`已更新按钮 ${type} 的显示名称为: ${displayName}`);
+        } else {
+            console.warn(`未找到类型为 ${type} 的分析按钮`);
+        }
+    }
+    
+    // 从UI中移除分析项
+    removeAnalysisItemFromUI(type) {
+        // 对于动态分析项，需要移除整个容器
+        if (type.startsWith('dynamic_')) {
+            const dynamicItem = document.querySelector(`.dynamic-analysis-item[data-id="${type}"]`);
+            if (dynamicItem) {
+                dynamicItem.remove();
+            }
+            
+            // 通知app.js更新UI
+            if (window.chatlogApp && window.chatlogApp.removeDynamicAnalysisItemUI) {
+                window.chatlogApp.removeDynamicAnalysisItemUI(type);
+            }
+        } else {
+            // 默认分析项不允许删除
+            const analysisItem = document.querySelector(`[data-type="${type}"]`);
+            if (analysisItem) {
+                analysisItem.remove();
+            }
+        }
     }
 
     // 恢复默认设置
@@ -398,10 +625,12 @@ class AISettingsManager {
 
         const defaultSetting = this.defaultSettings[this.currentEditingType];
         
+        const displayName = document.getElementById('settingsDisplayName');
         const timeRange = document.getElementById('settingsTimeRange');
         const groupName = document.getElementById('settingsGroupName');
         const prompt = document.getElementById('settingsPrompt');
         
+        if (displayName) displayName.value = defaultSetting.displayName || '';
         if (timeRange) timeRange.value = defaultSetting.timeRange;
         if (groupName) groupName.value = defaultSetting.groupName;
         if (prompt) prompt.value = defaultSetting.prompt;

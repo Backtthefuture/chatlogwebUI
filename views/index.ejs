@@ -63,6 +63,16 @@
                                 <i class="fas fa-cog"></i>
                             </button>
                         </div>
+                        
+                        <!-- 动态分析项容器 -->
+                        <div id="dynamicAnalysisContainer"></div>
+                        
+                        <!-- 新增分析项按钮 -->
+                        <div class="add-analysis-section">
+                            <button id="addAnalysisBtn" class="add-analysis-btn">
+                                <i class="fas fa-plus"></i> 新增分析项
+                            </button>
+                        </div>
                     </div>
                     <div class="ai-status" id="aiStatus" style="display: none;">
                         <div class="ai-loading">
@@ -259,6 +269,11 @@
                     <input type="hidden" id="settingsType" name="settingsType" value="">
                     
                     <div class="settings-group">
+                        <label for="settingsDisplayName">显示名称：</label>
+                        <input type="text" id="settingsDisplayName" name="settingsDisplayName" placeholder="请输入显示在首页的名称">
+                    </div>
+                    
+                    <div class="settings-group">
                         <label for="settingsTimeRange">默认时间范围：</label>
                         <select id="settingsTimeRange" name="settingsTimeRange">
                             <option value="yesterday">昨天</option>
@@ -304,6 +319,9 @@
                     </div>
 
                     <div class="settings-actions">
+                        <button type="button" id="deleteItemBtn" class="delete-item-btn" style="display: none;">
+                            <i class="fas fa-trash"></i> 删除此项
+                        </button>
                         <button type="button" class="save-settings-btn" id="saveSettingsBtn">
                             <i class="fas fa-save"></i> 保存设置
                         </button>

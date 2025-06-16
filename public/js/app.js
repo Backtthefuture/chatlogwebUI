@@ -12,6 +12,7 @@ class ChatlogApp {
         this.checkStatus();
         this.initDatePickers();
         this.loadAnalysisHistory();
+        this.initDynamicAnalysisItems();
     }
 
     // 绑定事件监听器
@@ -96,6 +97,11 @@ class ChatlogApp {
         
         document.getElementById('closeAiResult').addEventListener('click', () => {
             this.closeAIResultModal();
+        });
+        
+        // 新增分析项按钮
+        document.getElementById('addAnalysisBtn').addEventListener('click', () => {
+            this.addNewAnalysisItem();
         });
     }
 
@@ -980,6 +986,120 @@ class ChatlogApp {
             'custom': '自定义分析'
         };
         return labels[type] || '未知类型';
+    }
+    
+    // 初始化动态分析项
+    initDynamicAnalysisItems() {
+        if (window.aiSettingsManager) {
+            this.loadDynamicAnalysisItems();
+        } else {
+            // 等待AI设置管理器加载完成
+            setTimeout(() => {
+                this.initDynamicAnalysisItems();
+            }, 100);
+        }
+    }
+    
+    // 加载动态分析项到页面
+    loadDynamicAnalysisItems() {
+        const container = document.getElementById('dynamicAnalysisContainer');
+        if (!container || !window.aiSettingsManager) return;
+        
+        // 清空容器
+        container.innerHTML = '';
+        
+        // 获取所有动态分析项
+        const dynamicItems = window.aiSettingsManager.dynamicAnalysisItems;
+        
+        // 为每个动态分析项创建UI
+        dynamicItems.forEach(item => {
+            this.createDynamicAnalysisItemUI(item);
+        });
+    }
+    
+    // 创建动态分析项UI
+    createDynamicAnalysisItemUI(item) {
+        const container = document.getElementById('dynamicAnalysisContainer');
+        if (!container) return;
+        
+        const itemHTML = `
+            <div class="dynamic-analysis-item" data-id="${item.id}">
+                <div class="ai-btn-group">
+                    <button class="ai-btn" data-type="${item.id}">
+                        <i class="fas fa-chart-bar"></i> 
+                        <span class="analysis-title">${item.displayName || '新建分析'}</span>
+                    </button>
+                    <button class="ai-settings-btn" data-type="${item.id}" title="设置分析">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', itemHTML);
+        
+        // 绑定新创建的按钮事件
+        this.bindDynamicAnalysisEvents(item.id);
+    }
+    
+    // 绑定动态分析项事件
+    bindDynamicAnalysisEvents(itemId) {
+        const analysisBtn = document.querySelector(`[data-type="${itemId}"]:not(.ai-settings-btn)`);
+        const settingsBtn = document.querySelector(`[data-type="${itemId}"].ai-settings-btn`);
+        
+        if (analysisBtn) {
+            analysisBtn.addEventListener('click', () => {
+                this.executeDynamicAnalysis(itemId);
+            });
+        }
+        
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                if (window.aiSettingsManager) {
+                    window.aiSettingsManager.openSettings(itemId);
+                }
+            });
+        }
+    }
+    
+    // 执行动态分析
+    async executeDynamicAnalysis(itemId) {
+        if (!window.aiSettingsManager) {
+            alert('AI设置管理器未初始化');
+            return;
+        }
+        
+        const settings = window.aiSettingsManager.getSettings(itemId);
+        if (!settings.groupName) {
+            alert('请先在设置中选择群聊');
+            return;
+        }
+        
+        this.startAIAnalysis(settings.groupName, itemId);
+    }
+    
+    // 新增分析项
+    addNewAnalysisItem() {
+        if (!window.aiSettingsManager) {
+            alert('AI设置管理器未初始化');
+            return;
+        }
+        
+        const newItem = window.aiSettingsManager.addDynamicAnalysisItem();
+        this.createDynamicAnalysisItemUI(newItem);
+        
+        // 立即打开设置对话框
+        setTimeout(() => {
+            window.aiSettingsManager.openSettings(newItem.id);
+        }, 100);
+    }
+    
+    // 移除动态分析项UI
+    removeDynamicAnalysisItemUI(itemId) {
+        const element = document.querySelector(`.dynamic-analysis-item[data-id="${itemId}"]`);
+        if (element) {
+            element.remove();
+        }
     }
 }
 
