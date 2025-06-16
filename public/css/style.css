@@ -1073,6 +1073,7 @@ body {
 .history-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 .view-btn {
@@ -1095,6 +1096,30 @@ body {
 }
 
 .view-btn i {
+    font-size: 0.75rem;
+}
+
+/* 删除历史记录按钮样式 */
+.delete-history-btn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.delete-history-btn:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+.delete-history-btn i {
     font-size: 0.75rem;
 }
 

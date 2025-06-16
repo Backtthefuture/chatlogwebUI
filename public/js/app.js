@@ -966,6 +966,9 @@ class ChatlogApp {
                     <button onclick="window.open('/analysis/${record.id}', '_blank')" class="view-btn">
                         <i class="fas fa-eye"></i> 查看
                     </button>
+                    <button onclick="window.chatlogApp.deleteAnalysisHistory('${record.id}', '${record.title}')" class="delete-history-btn">
+                        <i class="fas fa-trash"></i> 删除
+                    </button>
                 </div>
             `;
             
@@ -1107,6 +1110,35 @@ class ChatlogApp {
         const element = document.querySelector(`.dynamic-analysis-item[data-id="${itemId}"]`);
         if (element) {
             element.remove();
+        }
+    }
+
+    // 删除分析历史记录
+    async deleteAnalysisHistory(recordId, recordTitle) {
+        // 二次确认对话框
+        const confirmed = confirm(`确认删除分析记录吗？\n\n${recordTitle}\n\n此操作不可撤销！`);
+        
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/analysis-history/${recordId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showMessage('分析记录已删除', 'success');
+                // 重新加载历史记录列表
+                this.loadAnalysisHistory();
+            } else {
+                this.showMessage('删除失败: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('删除分析记录失败:', error);
+            this.showMessage('删除失败: ' + error.message, 'error');
         }
     }
 }

@@ -448,6 +448,27 @@ app.get('/api/analysis-history/:id', (req, res) => {
   }
 });
 
+// 删除分析记录接口
+app.delete('/api/analysis-history/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const filepath = path.join(HISTORY_DIR, `${id}.json`);
+    
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ success: false, error: '分析记录不存在' });
+    }
+    
+    // 删除文件
+    fs.unlinkSync(filepath);
+    console.log(`删除分析记录: ${id}`);
+    
+    res.json({ success: true, message: '分析记录已删除' });
+  } catch (error) {
+    console.error('删除分析记录失败:', error);
+    res.status(500).json({ success: false, error: '删除分析记录失败' });
+  }
+});
+
 // 新页面展示分析结果
 app.get('/analysis/:id', (req, res) => {
   try {
