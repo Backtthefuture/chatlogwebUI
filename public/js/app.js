@@ -21,6 +21,14 @@ class ChatlogApp {
         this.init();
     }
 
+    // 格式化本地日期为YYYY-MM-DD格式
+    formatLocalDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     init() {
         this.bindEvents();
         this.checkStatus();
@@ -129,12 +137,12 @@ class ChatlogApp {
 
     // 初始化日期选择器
     initDatePickers() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = this.formatLocalDate(new Date());
         document.getElementById('endDate').value = today;
         
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
-        document.getElementById('startDate').value = weekAgo.toISOString().split('T')[0];
+        document.getElementById('startDate').value = this.formatLocalDate(weekAgo);
     }
 
     // 处理时间范围变化
@@ -149,7 +157,7 @@ class ChatlogApp {
             customTimeGroup.style.display = 'none';
             
             const today = new Date();
-            const endDateStr = today.toISOString().split('T')[0];
+            const endDateStr = this.formatLocalDate(today);
             
             let startDateStr;
             switch (value) {
@@ -159,18 +167,18 @@ class ChatlogApp {
                 case 'yesterday':
                     const yesterday = new Date(today);
                     yesterday.setDate(yesterday.getDate() - 1);
-                    startDateStr = yesterday.toISOString().split('T')[0];
+                    startDateStr = this.formatLocalDate(yesterday);
                     endDate.value = startDateStr;
                     break;
                 case 'week':
                     const weekAgo = new Date(today);
                     weekAgo.setDate(weekAgo.getDate() - 7);
-                    startDateStr = weekAgo.toISOString().split('T')[0];
+                    startDateStr = this.formatLocalDate(weekAgo);
                     break;
                 case 'month':
                     const monthAgo = new Date(today);
                     monthAgo.setMonth(monthAgo.getMonth() - 1);
-                    startDateStr = monthAgo.toISOString().split('T')[0];
+                    startDateStr = this.formatLocalDate(monthAgo);
                     break;
                 default:
                     startDateStr = '';
@@ -340,7 +348,7 @@ class ChatlogApp {
                 } else {
                     // 使用预设的时间范围
                     const today = new Date();
-                    const endDateStr = today.toISOString().split('T')[0];
+                    const endDateStr = this.formatLocalDate(today);
                     
                     switch (timeRange) {
                         case 'today':
@@ -349,17 +357,17 @@ class ChatlogApp {
                         case 'yesterday':
                             const yesterday = new Date(today);
                             yesterday.setDate(yesterday.getDate() - 1);
-                            timeParam = yesterday.toISOString().split('T')[0];
+                            timeParam = this.formatLocalDate(yesterday);
                             break;
                         case 'week':
                             const weekAgo = new Date(today);
                             weekAgo.setDate(weekAgo.getDate() - 7);
-                            timeParam = `${weekAgo.toISOString().split('T')[0]}~${endDateStr}`;
+                            timeParam = `${this.formatLocalDate(weekAgo)}~${endDateStr}`;
                             break;
                         case 'month':
                             const monthAgo = new Date(today);
                             monthAgo.setMonth(monthAgo.getMonth() - 1);
-                            timeParam = `${monthAgo.toISOString().split('T')[0]}~${endDateStr}`;
+                            timeParam = `${this.formatLocalDate(monthAgo)}~${endDateStr}`;
                             break;
                     }
                 }
@@ -370,7 +378,7 @@ class ChatlogApp {
                 const today = new Date();
                 const monthAgo = new Date(today);
                 monthAgo.setMonth(monthAgo.getMonth() - 1);
-                timeParam = `${monthAgo.toISOString().split('T')[0]}~${today.toISOString().split('T')[0]}`;
+                timeParam = `${this.formatLocalDate(monthAgo)}~${this.formatLocalDate(today)}`;
             }
             
             params.append('time', timeParam);
@@ -668,7 +676,7 @@ class ChatlogApp {
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = `chatlog_${new Date().toISOString().split('T')[0]}.txt`;
+        a.download = `chatlog_${this.formatLocalDate(new Date())}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -878,13 +886,17 @@ class ChatlogApp {
         }
 
         // 获取时间范围，默认使用昨天
-        let timeRange = customTimeRange || '2025-06-15~2025-06-15'; // 昨天的日期
+        let timeRange = customTimeRange;
         
-        // 如果选择了"昨天"，计算昨天的日期
-        if (customTimeRange === 'yesterday') {
+        // 如果没有指定时间范围或选择了"昨天"，计算昨天的日期
+        if (!customTimeRange || customTimeRange === 'yesterday') {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
-            const dateStr = yesterday.toISOString().split('T')[0];
+            // 使用本地时间而不是UTC时间
+            const year = yesterday.getFullYear();
+            const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+            const day = String(yesterday.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
             timeRange = `${dateStr}~${dateStr}`;
         }
 

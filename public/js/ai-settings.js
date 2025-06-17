@@ -37,6 +37,14 @@ class AISettingsManager {
         
         console.log('AI设置管理器初始化完成');
     }
+
+    // 格式化本地日期为YYYY-MM-DD格式
+    formatLocalDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
     
     // 初始化所有按钮的显示名称
     initializeDisplayNames() {
@@ -241,20 +249,20 @@ class AISettingsManager {
         
         switch (timeRange) {
             case 'today':
-                return today.toISOString().split('T')[0];
+                return this.formatLocalDate(today);
             case 'yesterday':
-                return yesterday.toISOString().split('T')[0];
+                return this.formatLocalDate(yesterday);
             case 'week':
                 const weekAgo = new Date(today);
                 weekAgo.setDate(weekAgo.getDate() - 7);
-                return `${weekAgo.toISOString().split('T')[0]}~${today.toISOString().split('T')[0]}`;
+                return `${this.formatLocalDate(weekAgo)}~${this.formatLocalDate(today)}`;
             case 'month':
                 const monthAgo = new Date(today);
                 monthAgo.setDate(monthAgo.getDate() - 30);
-                return `${monthAgo.toISOString().split('T')[0]}~${today.toISOString().split('T')[0]}`;
+                return `${this.formatLocalDate(monthAgo)}~${this.formatLocalDate(today)}`;
             default:
                 // 默认返回昨天
-                return yesterday.toISOString().split('T')[0];
+                return this.formatLocalDate(yesterday);
         }
     }
 
@@ -614,8 +622,8 @@ class AISettingsManager {
                     const today = new Date();
                     const weekAgo = new Date(today);
                     weekAgo.setDate(weekAgo.getDate() - 7);
-                    startDate.value = weekAgo.toISOString().split('T')[0];
-                    endDate.value = today.toISOString().split('T')[0];
+                                startDate.value = this.formatLocalDate(weekAgo);
+            endDate.value = this.formatLocalDate(today);
                 }
             } else {
                 customDateGroup.style.display = 'none';
