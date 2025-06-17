@@ -17,7 +17,7 @@ const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'your-deepseek-api-key-
 const DEEPSEEK_API_BASE = 'https://api.deepseek.com/v1';
 
 // 定时任务配置 - 使用动态变量
-let SCHEDULED_ANALYSIS_TIME = process.env.SCHEDULED_ANALYSIS_TIME || '0 8 * * *'; // 默认每天早上8点
+let SCHEDULED_ANALYSIS_TIME = process.env.SCHEDULED_ANALYSIS_TIME || '0 0 8 * * *'; // 默认每天早上8点
 let ENABLE_SCHEDULED_ANALYSIS = process.env.ENABLE_SCHEDULED_ANALYSIS === 'true';
 let currentCronJob = null; // 保存当前的定时任务实例
 
@@ -1050,6 +1050,48 @@ app.post('/api/trigger-scheduled-analysis', async (req, res) => {
   }
 });
 
+// 将Cron表达式转换为人类可读的时间格式
+function cronToHumanReadable(cronExpression) {
+  try {
+    const parts = cronExpression.trim().split(/\s+/);
+    if (parts.length !== 6) return cronExpression;
+    
+    const [sec, min, hour, day, month, week] = parts;
+    
+    // 格式化时间
+    const formatTime = (h, m) => {
+      const hourNum = parseInt(h);
+      const minNum = parseInt(m);
+      const period = hourNum >= 12 ? 'PM' : 'AM';
+      const displayHour = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+      const displayMin = minNum.toString().padStart(2, '0');
+      return `${period} ${displayHour}:${displayMin}`;
+    };
+    
+    // 判断执行频率
+    if (week === '*' && day === '*') {
+      return `每天 ${formatTime(hour, min)}`;
+    } else if (week === '1-5') {
+      return `工作日 ${formatTime(hour, min)}`;
+    } else if (week === '0,6') {
+      return `周末 ${formatTime(hour, min)}`;
+    } else if (/^\d$/.test(week)) {
+      const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      return `${weekDays[parseInt(week)]} ${formatTime(hour, min)}`;
+    } else if (hour.includes('/')) {
+      const interval = hour.split('/')[1];
+      return `每${interval}小时执行`;
+    } else if (min.includes('/')) {
+      const interval = min.split('/')[1];
+      return `每${interval}分钟执行`;
+    }
+    
+    return `${formatTime(hour, min)}`;
+  } catch (error) {
+    return cronExpression;
+  }
+}
+
 // 获取定时任务状态的API接口
 app.get('/api/scheduled-analysis-status', async (req, res) => {
   try {
@@ -1059,6 +1101,7 @@ app.get('/api/scheduled-analysis-status', async (req, res) => {
       success: true,
       enabled: ENABLE_SCHEDULED_ANALYSIS,
       cronTime: SCHEDULED_ANALYSIS_TIME,
+      humanReadableTime: cronToHumanReadable(SCHEDULED_ANALYSIS_TIME),
       nextRun: ENABLE_SCHEDULED_ANALYSIS ? cron.validate(SCHEDULED_ANALYSIS_TIME) ? '已配置' : '配置错误' : '未启用',
       analysisItems: analysisItems.map(item => ({
         name: item.name,
@@ -1185,7 +1228,7 @@ app.post('/api/save-scheduled-config', (req, res) => {
     // 动态更新定时任务配置，无需重启服务器
     const updateResult = updateScheduledAnalysisConfig({
       enabled: enabled,
-      cronTime: cronTime || '0 8 * * *'
+      cronTime: cronTime || '0 0 8 * * *'
     });
     
     if (updateResult.success) {

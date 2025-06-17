@@ -6,6 +6,37 @@
     <title>聊天记录查询</title>
     <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Cron预览样式优化 */
+        .cron-preview-readable {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 4px;
+        }
+        
+        .cron-preview-technical {
+            font-size: 0.9em;
+            color: #6b7280;
+            font-family: 'Courier New', monospace;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .cron-preview code {
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #scheduledTime[title] {
+            border-bottom: 1px dotted #6b7280;
+            cursor: help;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -415,18 +446,18 @@
                             <div class="config-group">
                                 <label for="cronExpression">Cron表达式：</label>
                                 <input type="text" id="cronExpression" name="cronExpression" 
-                                       placeholder="0 8 * * *" value="0 8 * * *">
+                                       placeholder="0 0 8 * * *" value="0 0 8 * * *">
                                 <p class="config-help">格式：秒 分 时 日 月 星期</p>
                             </div>
 
                             <div class="cron-examples">
                                 <h5>常用示例：</h5>
                                 <div class="example-buttons">
-                                    <button type="button" class="example-btn" data-cron="0 8 * * *">每天8点</button>
-                                    <button type="button" class="example-btn" data-cron="0 9 * * 1-5">工作日9点</button>
-                                    <button type="button" class="example-btn" data-cron="0 20 * * *">每天20点</button>
-                                    <button type="button" class="example-btn" data-cron="0 */6 * * *">每6小时</button>
-                                    <button type="button" class="example-btn" data-cron="0 0 * * 0">每周日午夜</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 8 * * *">每天8点</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 9 * * 1-5">工作日9点</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 20 * * *">每天20点</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 */6 * * *">每6小时</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 0 * * 0">每周日午夜</button>
                                 </div>
                             </div>
 

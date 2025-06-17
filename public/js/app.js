@@ -1576,7 +1576,16 @@ class ChatlogApp {
             enabledElement.className = 'status-value disabled';
         }
         
-        timeElement.textContent = data.cronTime || '-';
+        // 显示人类可读的时间格式，并添加技术格式作为提示
+        const displayTime = data.humanReadableTime || data.cronTime || '-';
+        timeElement.textContent = displayTime;
+        
+        // 如果有技术格式，添加为提示
+        if (data.humanReadableTime && data.cronTime) {
+            timeElement.title = `Cron表达式: ${data.cronTime}`;
+            timeElement.style.cursor = 'help';
+        }
+        
         countElement.textContent = `${data.analysisItems.length} 个`;
         
         // 更新分析项列表
@@ -1809,10 +1818,10 @@ class ChatlogApp {
                 document.getElementById('enableScheduled').checked = data.enabled;
                 
                 // 设置Cron表达式
-                document.getElementById('cronExpression').value = data.cronTime || '0 8 * * *';
+                document.getElementById('cronExpression').value = data.cronTime || '0 0 8 * * *';
                 
                 // 尝试解析为简单模式
-                this.parseCronToSimpleMode(data.cronTime || '0 8 * * *');
+                this.parseCronToSimpleMode(data.cronTime || '0 0 8 * * *');
                 
                 // 验证Cron表达式
                 this.validateCronExpression();
@@ -1899,6 +1908,48 @@ class ChatlogApp {
         }
     }
     
+    // 将Cron表达式转换为人类可读格式
+    cronToHumanReadable(cronExpression) {
+        try {
+            const parts = cronExpression.trim().split(/\s+/);
+            if (parts.length !== 6) return cronExpression;
+            
+            const [sec, min, hour, day, month, week] = parts;
+            
+            // 格式化时间
+            const formatTime = (h, m) => {
+                const hourNum = parseInt(h);
+                const minNum = parseInt(m);
+                const period = hourNum >= 12 ? 'PM' : 'AM';
+                const displayHour = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+                const displayMin = minNum.toString().padStart(2, '0');
+                return `${period} ${displayHour}:${displayMin}`;
+            };
+            
+            // 判断执行频率
+            if (week === '*' && day === '*') {
+                return `每天 ${formatTime(hour, min)}`;
+            } else if (week === '1-5') {
+                return `工作日 ${formatTime(hour, min)}`;
+            } else if (week === '0,6') {
+                return `周末 ${formatTime(hour, min)}`;
+            } else if (/^\d$/.test(week)) {
+                const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                return `${weekDays[parseInt(week)]} ${formatTime(hour, min)}`;
+            } else if (hour.includes('/')) {
+                const interval = hour.split('/')[1];
+                return `每${interval}小时执行`;
+            } else if (min.includes('/')) {
+                const interval = min.split('/')[1];
+                return `每${interval}分钟执行`;
+            }
+            
+            return `${formatTime(hour, min)}`;
+        } catch (error) {
+            return cronExpression;
+        }
+    }
+
     // 更新Cron预览
     updateCronPreview() {
         const activeTab = document.querySelector('.time-tab.active').dataset.tab;
@@ -1910,7 +1961,18 @@ class ChatlogApp {
             cronExpr = document.getElementById('cronExpression').value;
         }
         
-        document.getElementById('cronPreview').textContent = cronExpr;
+        // 显示人类可读格式和技术格式
+        const humanReadable = this.cronToHumanReadable(cronExpr);
+        const previewElement = document.getElementById('cronPreview');
+        
+        if (humanReadable !== cronExpr) {
+            previewElement.innerHTML = `
+                <div class="cron-preview-readable">${humanReadable}</div>
+                <div class="cron-preview-technical" title="技术格式">${cronExpr}</div>
+            `;
+        } else {
+            previewElement.textContent = cronExpr;
+        }
         
         // 同步到高级模式
         if (activeTab === 'simple') {
@@ -1924,7 +1986,7 @@ class ChatlogApp {
         const time = document.getElementById('simpleTime').value;
         const weeklyDay = document.getElementById('weeklyDay').value;
         
-        if (!time) return '0 8 * * *';
+        if (!time) return '0 0 8 * * *';
         
         const [hour, minute] = time.split(':');
         
