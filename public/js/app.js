@@ -35,6 +35,7 @@ class ChatlogApp {
         this.initDatePickers();
         this.loadAnalysisHistory();
         this.initDynamicAnalysisItems();
+        this.loadScheduledStatus();
     }
 
     // 绑定事件监听器
@@ -132,6 +133,24 @@ class ChatlogApp {
         // 取消批量分析按钮
         document.getElementById('cancelBatchBtn').addEventListener('click', () => {
             this.cancelBatchAnalysis();
+        });
+        
+        // 定时任务管理按钮
+        document.getElementById('triggerScheduledBtn').addEventListener('click', () => {
+            this.triggerScheduledAnalysis();
+        });
+        
+        document.getElementById('refreshStatusBtn').addEventListener('click', () => {
+            this.loadScheduledStatus();
+        });
+        
+        // 配置定时任务按钮
+        document.getElementById('configScheduledBtn').addEventListener('click', () => {
+            this.openScheduledConfig();
+        });
+        
+        document.getElementById('closeScheduledConfig').addEventListener('click', () => {
+            this.closeScheduledConfig();
         });
     }
 
@@ -1520,6 +1539,636 @@ class ChatlogApp {
     // 工具方法：延迟函数
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    // ============ 定时任务管理功能 ============
+    
+    // 加载定时任务状态
+    async loadScheduledStatus() {
+        try {
+            const response = await fetch('/api/scheduled-analysis-status');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.displayScheduledStatus(data);
+            } else {
+                console.error('获取定时任务状态失败:', data.error);
+                this.showScheduledError('获取定时任务状态失败');
+            }
+        } catch (error) {
+            console.error('加载定时任务状态失败:', error);
+            this.showScheduledError('加载定时任务状态失败');
+        }
+    }
+    
+    // 显示定时任务状态
+    displayScheduledStatus(data) {
+        // 更新状态显示
+        const enabledElement = document.getElementById('scheduledEnabled');
+        const timeElement = document.getElementById('scheduledTime');
+        const countElement = document.getElementById('scheduledItemCount');
+        
+        if (data.enabled) {
+            enabledElement.textContent = '✅ 已启用';
+            enabledElement.className = 'status-value enabled';
+        } else {
+            enabledElement.textContent = '❌ 未启用';
+            enabledElement.className = 'status-value disabled';
+        }
+        
+        timeElement.textContent = data.cronTime || '-';
+        countElement.textContent = `${data.analysisItems.length} 个`;
+        
+        // 更新分析项列表
+        this.displayScheduledItems(data.analysisItems);
+        
+        // 更新按钮状态
+        const triggerBtn = document.getElementById('triggerScheduledBtn');
+        if (data.analysisItems.length > 0) {
+            triggerBtn.disabled = false;
+        } else {
+            triggerBtn.disabled = true;
+        }
+    }
+    
+    // 显示分析项列表
+    displayScheduledItems(items) {
+        const itemsList = document.getElementById('itemsList');
+        
+        if (items.length === 0) {
+            itemsList.innerHTML = '<p class="loading-items">暂无配置的分析项，请先在上方配置AI分析设置</p>';
+            return;
+        }
+        
+        const itemsHTML = items.map(item => `
+            <div class="analysis-item">
+                <div class="item-info">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-group">群聊: ${item.groupName}</div>
+                </div>
+                <div class="item-type">${this.getAnalysisTypeLabel(item.analysisType)}</div>
+            </div>
+        `).join('');
+        
+        itemsList.innerHTML = itemsHTML;
+    }
+    
+    // 获取分析类型标签
+    getAnalysisTypeLabel(type) {
+        const labels = {
+            'programming': '编程分析',
+            'science': '科学分析',
+            'reading': '阅读分析',
+            'custom': '自定义分析'
+        };
+        return labels[type] || '未知类型';
+    }
+    
+    // 手动触发定时分析
+    async triggerScheduledAnalysis() {
+        const triggerBtn = document.getElementById('triggerScheduledBtn');
+        
+        if (!confirm('确定要手动触发定时分析吗？这将执行所有配置的分析项。')) {
+            return;
+        }
+        
+        try {
+            // 禁用按钮并显示加载状态
+            triggerBtn.disabled = true;
+            triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 执行中...';
+            
+            const response = await fetch('/api/trigger-scheduled-analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showMessage('定时分析已开始执行，请查看服务器日志获取进度', 'success');
+                
+                // 3秒后刷新历史记录
+                setTimeout(() => {
+                    this.loadAnalysisHistory();
+                }, 3000);
+            } else {
+                this.showMessage('触发定时分析失败: ' + data.error, 'error');
+            }
+            
+        } catch (error) {
+            console.error('触发定时分析失败:', error);
+            this.showMessage('触发定时分析失败: ' + error.message, 'error');
+        } finally {
+            // 恢复按钮状态
+            setTimeout(() => {
+                triggerBtn.disabled = false;
+                triggerBtn.innerHTML = '<i class="fas fa-play"></i> 手动触发分析';
+            }, 2000);
+        }
+    }
+    
+    // 显示定时任务错误
+    showScheduledError(message) {
+        const enabledElement = document.getElementById('scheduledEnabled');
+        const timeElement = document.getElementById('scheduledTime');
+        const countElement = document.getElementById('scheduledItemCount');
+        const itemsList = document.getElementById('itemsList');
+        
+        enabledElement.textContent = '❌ 检查失败';
+        enabledElement.className = 'status-value disabled';
+        timeElement.textContent = '-';
+        countElement.textContent = '-';
+        itemsList.innerHTML = `<p class="loading-items">❌ ${message}</p>`;
+        
+        // 禁用触发按钮
+        const triggerBtn = document.getElementById('triggerScheduledBtn');
+        triggerBtn.disabled = true;
+    }
+    
+    // ============ 定时任务配置界面功能 ============
+    
+    // 打开配置模态框
+    async openScheduledConfig() {
+        const modal = document.getElementById('scheduledConfigModal');
+        modal.classList.add('show');
+        
+        // 先同步分析项配置到服务器
+        await this.syncAnalysisConfigToServer();
+        
+        // 初始化配置界面
+        this.initScheduledConfig();
+        
+        // 绑定配置界面事件
+        this.bindScheduledConfigEvents();
+    }
+    
+    // 关闭配置模态框
+    closeScheduledConfig() {
+        const modal = document.getElementById('scheduledConfigModal');
+        modal.classList.remove('show');
+    }
+    
+    // 初始化配置界面
+    async initScheduledConfig() {
+        try {
+            // 加载当前配置
+            await this.loadCurrentScheduledConfig();
+            
+            // 加载分析项列表
+            await this.loadAnalysisItemsForConfig();
+            
+            // 更新Cron预览
+            this.updateCronPreview();
+            
+        } catch (error) {
+            console.error('初始化配置界面失败:', error);
+            this.showMessage('初始化配置界面失败: ' + error.message, 'error');
+        }
+    }
+    
+    // 绑定配置界面事件
+    bindScheduledConfigEvents() {
+        // 避免重复绑定
+        if (this.configEventsBound) return;
+        this.configEventsBound = true;
+        
+        // 时间配置标签页切换
+        document.querySelectorAll('.time-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                this.switchTimeConfigTab(e.target.dataset.tab);
+            });
+        });
+        
+        // 简单模式配置变化
+        document.getElementById('simpleTimeType').addEventListener('change', () => {
+            this.updateSimpleTimeConfig();
+            this.updateCronPreview();
+        });
+        
+        document.getElementById('simpleTime').addEventListener('change', () => {
+            this.updateCronPreview();
+        });
+        
+        document.getElementById('weeklyDay').addEventListener('change', () => {
+            this.updateCronPreview();
+        });
+        
+        // 高级模式Cron表达式验证
+        document.getElementById('cronExpression').addEventListener('input', () => {
+            this.validateCronExpression();
+        });
+        
+        // Cron示例按钮
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const cronExpr = e.target.dataset.cron;
+                document.getElementById('cronExpression').value = cronExpr;
+                this.validateCronExpression();
+            });
+        });
+        
+        // 刷新分析项
+        document.getElementById('refreshAnalysisItems').addEventListener('click', () => {
+            this.loadAnalysisItemsForConfig();
+        });
+        
+        // 表单提交
+        document.getElementById('scheduledConfigForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveScheduledConfig();
+        });
+        
+        // 测试配置
+        document.getElementById('testScheduledConfig').addEventListener('click', () => {
+            this.testScheduledConfig();
+        });
+        
+        // 重置配置
+        document.getElementById('resetScheduledConfig').addEventListener('click', () => {
+            this.resetScheduledConfig();
+        });
+        
+        // 模态框外部点击关闭
+        document.getElementById('scheduledConfigModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                this.closeScheduledConfig();
+            }
+        });
+    }
+    
+    // 加载当前配置
+    async loadCurrentScheduledConfig() {
+        try {
+            const response = await fetch('/api/scheduled-analysis-status');
+            const data = await response.json();
+            
+            if (data.success) {
+                // 设置启用状态
+                document.getElementById('enableScheduled').checked = data.enabled;
+                
+                // 设置Cron表达式
+                document.getElementById('cronExpression').value = data.cronTime || '0 8 * * *';
+                
+                // 尝试解析为简单模式
+                this.parseCronToSimpleMode(data.cronTime || '0 8 * * *');
+                
+                // 验证Cron表达式
+                this.validateCronExpression();
+            }
+        } catch (error) {
+            console.error('加载当前配置失败:', error);
+        }
+    }
+    
+    // 加载分析项列表用于配置
+    async loadAnalysisItemsForConfig() {
+        const container = document.getElementById('analysisItemsConfig');
+        container.innerHTML = '<div class="loading-config">正在加载分析项...</div>';
+        
+        try {
+            const response = await fetch('/api/scheduled-analysis-status');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.displayAnalysisItemsForConfig(data.analysisItems);
+            } else {
+                container.innerHTML = '<div class="loading-config">❌ 加载失败</div>';
+            }
+        } catch (error) {
+            console.error('加载分析项失败:', error);
+            container.innerHTML = '<div class="loading-config">❌ 加载失败</div>';
+        }
+    }
+    
+    // 显示分析项配置列表
+    displayAnalysisItemsForConfig(items) {
+        const container = document.getElementById('analysisItemsConfig');
+        
+        if (items.length === 0) {
+            container.innerHTML = `
+                <div class="loading-config">
+                    暂无配置的分析项<br>
+                    <small>请先在上方"AI分析"区域配置分析项</small>
+                </div>
+            `;
+            return;
+        }
+        
+        const itemsHTML = items.map(item => {
+            const isReady = item.groupName && item.name;
+            return `
+                <div class="config-analysis-item">
+                    <div class="config-item-info">
+                        <div class="config-item-name">${item.name}</div>
+                        <div class="config-item-group">群聊: ${item.groupName || '未配置'}</div>
+                    </div>
+                    <div class="config-item-status ${isReady ? 'ready' : 'incomplete'}">
+                        ${isReady ? '✅ 已配置' : '⚠️ 未完成'}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = itemsHTML;
+    }
+    
+    // 切换时间配置标签页
+    switchTimeConfigTab(tabName) {
+        // 更新标签页状态
+        document.querySelectorAll('.time-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        
+        // 显示对应面板
+        document.getElementById('simpleTimePanel').style.display = tabName === 'simple' ? 'block' : 'none';
+        document.getElementById('advancedTimePanel').style.display = tabName === 'advanced' ? 'block' : 'none';
+    }
+    
+    // 更新简单模式配置
+    updateSimpleTimeConfig() {
+        const timeType = document.getElementById('simpleTimeType').value;
+        const weeklyGroup = document.getElementById('weeklyDayGroup');
+        
+        if (timeType === 'weekly') {
+            weeklyGroup.style.display = 'block';
+        } else {
+            weeklyGroup.style.display = 'none';
+        }
+    }
+    
+    // 更新Cron预览
+    updateCronPreview() {
+        const activeTab = document.querySelector('.time-tab.active').dataset.tab;
+        let cronExpr = '';
+        
+        if (activeTab === 'simple') {
+            cronExpr = this.generateCronFromSimpleMode();
+        } else {
+            cronExpr = document.getElementById('cronExpression').value;
+        }
+        
+        document.getElementById('cronPreview').textContent = cronExpr;
+        
+        // 同步到高级模式
+        if (activeTab === 'simple') {
+            document.getElementById('cronExpression').value = cronExpr;
+        }
+    }
+    
+    // 从简单模式生成Cron表达式
+    generateCronFromSimpleMode() {
+        const timeType = document.getElementById('simpleTimeType').value;
+        const time = document.getElementById('simpleTime').value;
+        const weeklyDay = document.getElementById('weeklyDay').value;
+        
+        if (!time) return '0 8 * * *';
+        
+        const [hour, minute] = time.split(':');
+        
+        switch (timeType) {
+            case 'daily':
+                return `0 ${minute} ${hour} * * *`;
+            case 'weekdays':
+                return `0 ${minute} ${hour} * * 1-5`;
+            case 'weekends':
+                return `0 ${minute} ${hour} * * 0,6`;
+            case 'weekly':
+                return `0 ${minute} ${hour} * * ${weeklyDay}`;
+            default:
+                return `0 ${minute} ${hour} * * *`;
+        }
+    }
+    
+    // 解析Cron表达式到简单模式
+    parseCronToSimpleMode(cronExpr) {
+        try {
+            const parts = cronExpr.trim().split(/\s+/);
+            if (parts.length !== 6) return;
+            
+            const [sec, min, hour, day, month, week] = parts;
+            
+            // 设置时间
+            document.getElementById('simpleTime').value = 
+                `${hour.padStart(2, '0')}:${min.padStart(2, '0')}`;
+            
+            // 判断类型
+            if (week === '*') {
+                document.getElementById('simpleTimeType').value = 'daily';
+            } else if (week === '1-5') {
+                document.getElementById('simpleTimeType').value = 'weekdays';
+            } else if (week === '0,6') {
+                document.getElementById('simpleTimeType').value = 'weekends';
+            } else if (/^\d$/.test(week)) {
+                document.getElementById('simpleTimeType').value = 'weekly';
+                document.getElementById('weeklyDay').value = week;
+            }
+            
+            this.updateSimpleTimeConfig();
+        } catch (error) {
+            console.error('解析Cron表达式失败:', error);
+        }
+    }
+    
+    // 验证Cron表达式
+    validateCronExpression() {
+        const cronExpr = document.getElementById('cronExpression').value;
+        const validation = document.getElementById('cronValidation');
+        
+        if (!cronExpr.trim()) {
+            validation.textContent = '';
+            validation.className = 'validation-message';
+            return false;
+        }
+        
+        // 简单验证：检查格式
+        const parts = cronExpr.trim().split(/\s+/);
+        if (parts.length !== 6) {
+            validation.textContent = '❌ Cron表达式应包含6个部分（秒 分 时 日 月 星期）';
+            validation.className = 'validation-message invalid';
+            return false;
+        }
+        
+        // 检查各部分的基本格式
+        const patterns = [
+            /^(\*|\d+(-\d+)?|\d+(,\d+)*|\*\/\d+)$/, // 秒
+            /^(\*|\d+(-\d+)?|\d+(,\d+)*|\*\/\d+)$/, // 分
+            /^(\*|\d+(-\d+)?|\d+(,\d+)*|\*\/\d+)$/, // 时
+            /^(\*|\d+(-\d+)?|\d+(,\d+)*|\*\/\d+)$/, // 日
+            /^(\*|\d+(-\d+)?|\d+(,\d+)*|\*\/\d+)$/, // 月
+            /^(\*|\d+(-\d+)?|\d+(,\d+)*|\*\/\d+)$/, // 星期
+        ];
+        
+        for (let i = 0; i < parts.length; i++) {
+            if (!patterns[i].test(parts[i])) {
+                validation.textContent = `❌ 第${i + 1}部分格式错误`;
+                validation.className = 'validation-message invalid';
+                return false;
+            }
+        }
+        
+        validation.textContent = '✅ Cron表达式格式正确';
+        validation.className = 'validation-message valid';
+        return true;
+    }
+    
+    // 保存配置
+    async saveScheduledConfig() {
+        try {
+            // 首先保存分析项配置到服务器
+            await this.syncAnalysisConfigToServer();
+            
+            const formData = new FormData(document.getElementById('scheduledConfigForm'));
+            const config = {
+                enabled: document.getElementById('enableScheduled').checked,
+                cronTime: document.getElementById('cronExpression').value,
+                analysisTimeRange: formData.get('analysisTimeRange'),
+                analysisInterval: parseInt(formData.get('analysisInterval')),
+                skipEmptyData: document.getElementById('skipEmptyData').checked,
+                enableNotification: document.getElementById('enableNotification').checked
+            };
+            
+            // 验证配置
+            if (config.enabled && !this.validateCronExpression()) {
+                this.showMessage('请输入有效的Cron表达式', 'error');
+                return;
+            }
+            
+            // 发送保存请求
+            const response = await fetch('/api/save-scheduled-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showMessage('配置保存成功！请重启服务使配置生效', 'success');
+                this.closeScheduledConfig();
+                
+                // 刷新状态显示
+                setTimeout(() => {
+                    this.loadScheduledStatus();
+                }, 1000);
+            } else {
+                this.showMessage('保存配置失败: ' + result.error, 'error');
+            }
+            
+        } catch (error) {
+            console.error('保存配置失败:', error);
+            this.showMessage('保存配置失败: ' + error.message, 'error');
+        }
+    }
+    
+    // 同步分析项配置到服务器
+    async syncAnalysisConfigToServer() {
+        try {
+            // 获取当前的分析项配置
+            const analysisConfig = {
+                dynamicAnalysisItems: window.aiSettingsManager?.dynamicAnalysisItems || []
+            };
+            
+            // 添加所有配置的分析项设置
+            const allItems = this.getAllAnalysisItems();
+            allItems.forEach(item => {
+                const settings = window.aiSettingsManager?.getSettings(item.id);
+                if (settings && settings.groupName) {
+                    analysisConfig[item.id] = settings;
+                }
+            });
+            
+            // 发送到服务器
+            const response = await fetch('/api/save-analysis-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ analysisConfig })
+            });
+            
+            const result = await response.json();
+            if (!result.success) {
+                console.error('同步分析项配置失败:', result.error);
+            } else {
+                console.log('✅ 分析项配置已同步到服务器');
+            }
+            
+        } catch (error) {
+            console.error('同步分析项配置失败:', error);
+        }
+    }
+    
+    // 测试配置
+    async testScheduledConfig() {
+        const testBtn = document.getElementById('testScheduledConfig');
+        const originalText = testBtn.innerHTML;
+        
+        try {
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 测试中...';
+            
+            // 验证Cron表达式
+            if (!this.validateCronExpression()) {
+                this.showMessage('请输入有效的Cron表达式', 'error');
+                return;
+            }
+            
+            const cronExpr = document.getElementById('cronExpression').value;
+            
+            // 发送测试请求
+            const response = await fetch('/api/test-cron-expression', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ cronExpression: cronExpr })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showMessage(`测试成功！下次执行时间: ${result.nextRun}`, 'success');
+            } else {
+                this.showMessage('测试失败: ' + result.error, 'error');
+            }
+            
+        } catch (error) {
+            console.error('测试配置失败:', error);
+            this.showMessage('测试配置失败: ' + error.message, 'error');
+        } finally {
+            testBtn.disabled = false;
+            testBtn.innerHTML = originalText;
+        }
+    }
+    
+    // 重置配置
+    resetScheduledConfig() {
+        if (!confirm('确定要重置所有配置吗？')) {
+            return;
+        }
+        
+        // 重置为默认值
+        document.getElementById('enableScheduled').checked = false;
+        document.getElementById('simpleTimeType').value = 'daily';
+        document.getElementById('simpleTime').value = '08:00';
+        document.getElementById('weeklyDay').value = '1';
+        document.getElementById('cronExpression').value = '0 8 * * *';
+        document.getElementById('analysisTimeRange').value = 'yesterday';
+        document.getElementById('analysisInterval').value = '3';
+        document.getElementById('skipEmptyData').checked = true;
+        document.getElementById('enableNotification').checked = false;
+        
+        // 更新界面
+        this.updateSimpleTimeConfig();
+        this.updateCronPreview();
+        this.validateCronExpression();
+        
+        this.showMessage('配置已重置为默认值', 'info');
     }
 }
 

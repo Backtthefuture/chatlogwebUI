@@ -157,6 +157,59 @@
             </div>
         </section>
 
+        <!-- 定时任务管理区域 -->
+        <section class="scheduled-section">
+            <div class="panel-header">
+                <h3><i class="fas fa-clock"></i> ⏰ 定时分析管理</h3>
+            </div>
+            <div class="scheduled-content">
+                <div class="scheduled-status" id="scheduledStatus">
+                    <div class="status-item">
+                        <span class="status-label">状态:</span>
+                        <span class="status-value" id="scheduledEnabled">检查中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">执行时间:</span>
+                        <span class="status-value" id="scheduledTime">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">分析项数量:</span>
+                        <span class="status-value" id="scheduledItemCount">-</span>
+                    </div>
+                </div>
+                
+                <div class="scheduled-actions">
+                    <button type="button" id="triggerScheduledBtn" class="scheduled-btn trigger-btn">
+                        <i class="fas fa-play"></i> 手动触发分析
+                    </button>
+                    <button type="button" id="refreshStatusBtn" class="scheduled-btn refresh-btn">
+                        <i class="fas fa-sync"></i> 刷新状态
+                    </button>
+                    <button type="button" id="configScheduledBtn" class="scheduled-btn config-btn">
+                        <i class="fas fa-cog"></i> 配置定时任务
+                    </button>
+                </div>
+                
+                <div class="scheduled-items" id="scheduledItems">
+                    <h4>配置的分析项:</h4>
+                    <div class="items-list" id="itemsList">
+                        <p class="loading-items">正在加载配置...</p>
+                    </div>
+                </div>
+                
+                <div class="scheduled-help">
+                    <h4>💡 使用说明:</h4>
+                    <ul>
+                        <li>定时分析会自动执行所有已配置的分析项</li>
+                        <li>默认分析昨天的聊天数据</li>
+                        <li>需要在 .env 文件中设置 ENABLE_SCHEDULED_ANALYSIS=true 启用</li>
+                        <li>可通过 SCHEDULED_ANALYSIS_TIME 设置执行时间（Cron格式）</li>
+                        <li>分析结果会自动保存到历史记录中</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
         <!-- 分析历史记录区域 -->
         <section class="history-section">
             <div class="panel-header">
@@ -283,6 +336,187 @@
             </div>
             <div class="ai-result-body">
                 <iframe id="aiResultFrame" class="ai-result-iframe" srcdoc=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 定时任务配置模态框 -->
+    <div class="scheduled-config-modal" id="scheduledConfigModal">
+        <div class="scheduled-config-content">
+            <div class="scheduled-config-header">
+                <h3><i class="fas fa-clock"></i> 定时任务配置</h3>
+                <button class="scheduled-config-close" id="closeScheduledConfig">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="scheduled-config-body">
+                <form id="scheduledConfigForm">
+                    <!-- 基本配置 -->
+                    <div class="config-section">
+                        <h4><i class="fas fa-toggle-on"></i> 基本设置</h4>
+                        
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="enableScheduled" name="enableScheduled">
+                                <span class="switch-slider"></span>
+                                启用定时分析
+                            </label>
+                            <p class="config-help">开启后系统将按设定时间自动执行分析</p>
+                        </div>
+                    </div>
+
+                    <!-- 时间配置 -->
+                    <div class="config-section">
+                        <h4><i class="fas fa-clock"></i> 执行时间设置</h4>
+                        
+                        <div class="time-config-tabs">
+                            <button type="button" class="time-tab active" data-tab="simple">简单模式</button>
+                            <button type="button" class="time-tab" data-tab="advanced">高级模式</button>
+                        </div>
+
+                        <!-- 简单模式 -->
+                        <div class="time-config-panel" id="simpleTimePanel">
+                            <div class="config-group">
+                                <label for="simpleTimeType">执行频率：</label>
+                                <select id="simpleTimeType" name="simpleTimeType">
+                                    <option value="daily">每天</option>
+                                    <option value="weekdays">工作日</option>
+                                    <option value="weekends">周末</option>
+                                    <option value="weekly">每周</option>
+                                </select>
+                            </div>
+
+                            <div class="config-group">
+                                <label for="simpleTime">执行时间：</label>
+                                <input type="time" id="simpleTime" name="simpleTime" value="08:00">
+                            </div>
+
+                            <div class="config-group" id="weeklyDayGroup" style="display: none;">
+                                <label for="weeklyDay">选择星期：</label>
+                                <select id="weeklyDay" name="weeklyDay">
+                                    <option value="0">星期日</option>
+                                    <option value="1" selected>星期一</option>
+                                    <option value="2">星期二</option>
+                                    <option value="3">星期三</option>
+                                    <option value="4">星期四</option>
+                                    <option value="5">星期五</option>
+                                    <option value="6">星期六</option>
+                                </select>
+                            </div>
+
+                            <div class="cron-preview">
+                                <strong>Cron表达式预览：</strong>
+                                <code id="cronPreview">0 8 * * *</code>
+                            </div>
+                        </div>
+
+                        <!-- 高级模式 -->
+                        <div class="time-config-panel" id="advancedTimePanel" style="display: none;">
+                            <div class="config-group">
+                                <label for="cronExpression">Cron表达式：</label>
+                                <input type="text" id="cronExpression" name="cronExpression" 
+                                       placeholder="0 8 * * *" value="0 8 * * *">
+                                <p class="config-help">格式：秒 分 时 日 月 星期</p>
+                            </div>
+
+                            <div class="cron-examples">
+                                <h5>常用示例：</h5>
+                                <div class="example-buttons">
+                                    <button type="button" class="example-btn" data-cron="0 8 * * *">每天8点</button>
+                                    <button type="button" class="example-btn" data-cron="0 9 * * 1-5">工作日9点</button>
+                                    <button type="button" class="example-btn" data-cron="0 20 * * *">每天20点</button>
+                                    <button type="button" class="example-btn" data-cron="0 */6 * * *">每6小时</button>
+                                    <button type="button" class="example-btn" data-cron="0 0 * * 0">每周日午夜</button>
+                                </div>
+                            </div>
+
+                            <div class="cron-validation">
+                                <span id="cronValidation" class="validation-message"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 分析项配置 -->
+                    <div class="config-section">
+                        <h4><i class="fas fa-list"></i> 分析项管理</h4>
+                        
+                        <div class="analysis-items-config">
+                            <div class="items-header">
+                                <span>已配置的分析项</span>
+                                <button type="button" id="refreshAnalysisItems" class="refresh-items-btn">
+                                    <i class="fas fa-sync"></i> 刷新
+                                </button>
+                            </div>
+                            
+                            <div class="items-list-config" id="analysisItemsConfig">
+                                <div class="loading-config">正在加载分析项...</div>
+                            </div>
+                        </div>
+
+                        <div class="config-tips">
+                            <h5><i class="fas fa-info-circle"></i> 配置提示：</h5>
+                            <ul>
+                                <li>请确保每个分析项都已配置群聊名称和提示词</li>
+                                <li>未配置完整的分析项将被跳过</li>
+                                <li>可以在上方"AI分析"区域配置分析项</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 高级选项 -->
+                    <div class="config-section">
+                        <h4><i class="fas fa-cogs"></i> 高级选项</h4>
+                        
+                        <div class="config-group">
+                            <label for="analysisTimeRange">分析时间范围：</label>
+                            <select id="analysisTimeRange" name="analysisTimeRange">
+                                <option value="yesterday" selected>昨天</option>
+                                <option value="today">今天</option>
+                                <option value="last3days">最近3天</option>
+                                <option value="lastweek">最近一周</option>
+                            </select>
+                            <p class="config-help">定时分析将分析指定时间范围的聊天数据</p>
+                        </div>
+
+                        <div class="config-group">
+                            <label for="analysisInterval">分析间隔（秒）：</label>
+                            <input type="number" id="analysisInterval" name="analysisInterval" 
+                                   value="3" min="1" max="60">
+                            <p class="config-help">每个分析项之间的等待时间，避免API频率限制</p>
+                        </div>
+
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="skipEmptyData" name="skipEmptyData" checked>
+                                <span class="switch-slider"></span>
+                                跳过无数据的分析项
+                            </label>
+                            <p class="config-help">当某个群聊在指定时间范围内无聊天数据时自动跳过</p>
+                        </div>
+
+                        <div class="config-group">
+                            <label class="switch-label">
+                                <input type="checkbox" id="enableNotification" name="enableNotification">
+                                <span class="switch-slider"></span>
+                                启用执行通知
+                            </label>
+                            <p class="config-help">分析完成后在浏览器中显示通知（需要授权）</p>
+                        </div>
+                    </div>
+
+                    <!-- 按钮组 -->
+                    <div class="config-actions">
+                        <button type="button" id="testScheduledConfig" class="config-btn test-btn">
+                            <i class="fas fa-flask"></i> 测试配置
+                        </button>
+                        <button type="submit" class="config-btn save-btn">
+                            <i class="fas fa-save"></i> 保存配置
+                        </button>
+                        <button type="button" id="resetScheduledConfig" class="config-btn reset-btn">
+                            <i class="fas fa-undo"></i> 重置
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

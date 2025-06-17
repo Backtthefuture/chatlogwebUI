@@ -1320,6 +1320,657 @@ body {
     box-shadow: none;
 }
 
+/* 定时任务管理样式 */
+.scheduled-section {
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 12px;
+    position: relative;
+}
+
+.scheduled-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+    border-radius: 2px 2px 0 0;
+}
+
+.scheduled-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.scheduled-status {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.status-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.status-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.status-value.enabled {
+    color: #059669;
+}
+
+.status-value.disabled {
+    color: #dc2626;
+}
+
+.scheduled-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.scheduled-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.trigger-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.trigger-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.trigger-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.refresh-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.refresh-btn:hover {
+    background: #e5e7eb;
+    transform: translateY(-1px);
+}
+
+.config-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: white;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.config-btn:hover {
+    background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+    transform: translateY(-1px);
+}
+
+.scheduled-items {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.scheduled-items h4 {
+    margin: 0 0 1rem 0;
+    color: #374151;
+    font-size: 1rem;
+}
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.analysis-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.item-name {
+    font-weight: 600;
+    color: #374151;
+}
+
+.item-group {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.item-type {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.scheduled-help {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.scheduled-help h4 {
+    margin: 0 0 0.75rem 0;
+    color: #374151;
+    font-size: 0.95rem;
+}
+
+.scheduled-help ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: #6b7280;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.scheduled-help li {
+    margin-bottom: 0.25rem;
+}
+
+.loading-items {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    margin: 1rem 0;
+}
+
+/* 定时任务配置模态框样式 */
+.scheduled-config-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    padding: 1rem;
+}
+
+.scheduled-config-modal.show {
+    display: flex;
+}
+
+.scheduled-config-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.scheduled-config-header {
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.scheduled-config-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.scheduled-config-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.scheduled-config-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.scheduled-config-body {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+/* 配置区块样式 */
+.config-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f8f9ff;
+    border-radius: 8px;
+    border: 1px solid #e1e5f2;
+}
+
+.config-section h4 {
+    margin: 0 0 1rem 0;
+    color: #374151;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.config-group {
+    margin-bottom: 1rem;
+}
+
+.config-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #374151;
+    font-weight: 500;
+}
+
+.config-group input,
+.config-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.config-group input:focus,
+.config-group select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.config-help {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+/* 开关样式 */
+.switch-label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem !important;
+}
+
+.switch-label input[type="checkbox"] {
+    display: none;
+}
+
+.switch-slider {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #d1d5db;
+    border-radius: 24px;
+    transition: background 0.3s ease;
+}
+
+.switch-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.switch-label input[type="checkbox"]:checked + .switch-slider {
+    background: #667eea;
+}
+
+.switch-label input[type="checkbox"]:checked + .switch-slider::before {
+    transform: translateX(20px);
+}
+
+/* 时间配置标签页 */
+.time-config-tabs {
+    display: flex;
+    margin-bottom: 1rem;
+    background: #e5e7eb;
+    border-radius: 6px;
+    padding: 0.25rem;
+}
+
+.time-tab {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #6b7280;
+    transition: all 0.3s ease;
+}
+
+.time-tab.active {
+    background: white;
+    color: #374151;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.time-config-panel {
+    margin-top: 1rem;
+}
+
+/* Cron预览样式 */
+.cron-preview {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #f3f4f6;
+    border-radius: 6px;
+    border-left: 4px solid #667eea;
+}
+
+.cron-preview code {
+    background: #e5e7eb;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Consolas', monospace;
+    color: #374151;
+}
+
+/* Cron示例按钮 */
+.cron-examples {
+    margin-top: 1rem;
+}
+
+.cron-examples h5 {
+    margin: 0 0 0.5rem 0;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.example-btn {
+    padding: 0.5rem 0.75rem;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #374151;
+}
+
+.example-btn:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+}
+
+.example-btn:active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+/* 验证消息样式 */
+.validation-message {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.validation-message.valid {
+    color: #059669;
+}
+
+.validation-message.invalid {
+    color: #dc2626;
+}
+
+/* 分析项配置样式 */
+.analysis-items-config {
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.items-header {
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500;
+    color: #374151;
+}
+
+.refresh-items-btn {
+    padding: 0.25rem 0.5rem;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #374151;
+}
+
+.refresh-items-btn:hover {
+    background: #e5e7eb;
+}
+
+.items-list-config {
+    padding: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.config-analysis-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f8f9ff;
+    border-radius: 6px;
+    border: 1px solid #e1e5f2;
+    margin-bottom: 0.5rem;
+}
+
+.config-analysis-item:last-child {
+    margin-bottom: 0;
+}
+
+.config-item-info {
+    flex: 1;
+}
+
+.config-item-name {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.config-item-group {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.config-item-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.config-item-status.ready {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.config-item-status.incomplete {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* 配置提示样式 */
+.config-tips {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 6px;
+    border-left: 4px solid #3b82f6;
+}
+
+.config-tips h5 {
+    margin: 0 0 0.5rem 0;
+    color: #1e40af;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.config-tips ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: #374151;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.config-tips li {
+    margin-bottom: 0.25rem;
+}
+
+/* 操作按钮样式 */
+.config-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.config-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.save-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.save-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+}
+
+.test-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+}
+
+.test-btn:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+}
+
+.reset-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.reset-btn:hover {
+    background: #e5e7eb;
+    transform: translateY(-1px);
+}
+
+.loading-config {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    padding: 1rem;
+}
+
 .batch-analysis-btn i {
     margin-right: 0.5rem;
     font-size: 1.1rem;

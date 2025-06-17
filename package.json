@@ -1,6 +1,6 @@
 {
   "name": "chatlog-web",
-  "version": "1.7.0",
+  "version": "2.0.0",
   "description": "聊天记录查询和显示网站",
   "main": "server.js",
   "scripts": {
@@ -13,7 +13,8 @@
     "dotenv": "^16.5.0",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
-    "moment": "^2.29.4"
+    "moment": "^2.29.4",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
