@@ -51,6 +51,16 @@ class ChatlogApp {
             this.handleTimeRangeChange(e.target.value);
         });
 
+        // 显示数量选择器 - 显示/隐藏不限制警告
+        document.getElementById('limitSelect').addEventListener('change', (e) => {
+            const limitWarning = document.getElementById('limitWarning');
+            if (e.target.value === '') {
+                limitWarning.classList.add('show');
+            } else {
+                limitWarning.classList.remove('show');
+            }
+        });
+
         // 快捷操作按钮
         document.getElementById('loadContactsBtn').addEventListener('click', () => {
             this.loadContacts();
@@ -407,7 +417,8 @@ class ChatlogApp {
     async searchChatlog() {
         const timeRange = document.getElementById('timeRange').value;
         const talker = document.getElementById('talkerSelect').value;
-        const limit = parseInt(document.getElementById('limitSelect').value);
+        const limitValue = document.getElementById('limitSelect').value;
+        const limit = limitValue === '' ? null : parseInt(limitValue);
 
         if (!talker) {
             this.showMessage('请选择聊天对象', 'error');
@@ -424,8 +435,16 @@ class ChatlogApp {
             const actualTimeRange = this.convertTimeRange(timeRange);
             params.append('time', actualTimeRange);
             params.append('talker', talker);
-            params.append('limit', limit.toString());
-            params.append('offset', (this.currentPage * limit).toString());
+            
+            // 只有当limit不为null时才添加limit参数
+            if (limit !== null) {
+                params.append('limit', limit.toString());
+                params.append('offset', (this.currentPage * limit).toString());
+            } else {
+                // 不限制时不设置offset
+                params.append('offset', '0');
+            }
+            
             params.append('format', 'json');
             
             const response = await fetch(`/api/chatlog?${params}`);
@@ -434,7 +453,12 @@ class ChatlogApp {
             if (response.ok) {
                 this.currentData = data;
                 this.displayChatMessages(data);
-                this.updatePagination(data.length >= limit);
+                // 当不限制条数时，不显示分页控件
+                if (limit !== null) {
+                    this.updatePagination(data.length >= limit);
+                } else {
+                    this.updatePagination(false); // 不显示分页
+                }
                 
 
                 

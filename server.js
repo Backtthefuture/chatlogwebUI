@@ -91,12 +91,17 @@ app.get('/', (req, res) => {
 // 获取聊天记录
 app.get('/api/chatlog', async (req, res) => {
   try {
-    const { time, talker, limit = 50, offset = 0, format = 'json' } = req.query;
+    const { time, talker, limit, offset = 0, format = 'json' } = req.query;
     
     const params = new URLSearchParams();
     if (time) params.append('time', time);
     if (talker) params.append('talker', talker);
-    if (limit) params.append('limit', limit);
+    
+    // 只有当明确指定limit时才添加该参数（支持不限制查询）
+    if (limit !== undefined && limit !== '') {
+      params.append('limit', limit);
+    }
+    
     if (offset) params.append('offset', offset);
     if (format) params.append('format', format);
 

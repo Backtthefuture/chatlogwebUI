@@ -451,6 +451,24 @@ body {
     transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* 特殊处理不限制选项的提示 */
+.form-group select option[value=""] {
+    font-weight: 600;
+    color: #007AFF;
+}
+
+.limit-warning {
+    font-size: 0.75rem;
+    color: #FF6B35;
+    margin-top: 0.25rem;
+    font-weight: 500;
+    display: none;
+}
+
+.limit-warning.show {
+    display: block;
+}
+
 .form-group select:focus,
 .form-group input:focus {
     outline: none;
