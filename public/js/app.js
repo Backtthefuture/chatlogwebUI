@@ -64,9 +64,9 @@ class ChatlogApp {
             this.loadSessions();
         });
 
-        // 控制按钮
+        // 刷新连接按钮
         document.getElementById('refreshBtn').addEventListener('click', () => {
-            this.refreshData();
+            this.refreshConnection();
         });
 
         // 分页按钮
@@ -214,25 +214,50 @@ class ChatlogApp {
             const response = await fetch('/api/status');
             const data = await response.json();
             
-            const statusIndicator = document.getElementById('statusIndicator');
-            const statusDot = statusIndicator.querySelector('.status-dot');
-            const statusText = statusIndicator.querySelector('.status-text');
-            
-            if (data.status === 'connected') {
-                statusDot.className = 'status-dot connected';
-                statusText.textContent = '已连接 Chatlog 服务';
-            } else {
-                statusDot.className = 'status-dot disconnected';
-                statusText.textContent = 'Chatlog 服务未连接';
-            }
+            this.updateConnectionStatus(data.status === 'connected');
         } catch (error) {
             console.error('检查状态失败:', error);
-            const statusIndicator = document.getElementById('statusIndicator');
-            const statusDot = statusIndicator.querySelector('.status-dot');
-            const statusText = statusIndicator.querySelector('.status-text');
-            
+            this.updateConnectionStatus(false);
+        }
+    }
+
+    // 更新连接状态显示
+    updateConnectionStatus(isConnected) {
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusDot = statusIndicator.querySelector('.status-dot');
+        const statusText = statusIndicator.querySelector('.status-text');
+        const refreshBtn = document.getElementById('refreshBtn');
+        
+        if (isConnected) {
+            statusDot.className = 'status-dot connected';
+            statusText.textContent = '已连接 Chatlog 服务';
+            refreshBtn.classList.remove('disconnected');
+        } else {
             statusDot.className = 'status-dot disconnected';
-            statusText.textContent = '连接检查失败';
+            statusText.textContent = 'Chatlog 服务未连接';
+            refreshBtn.classList.add('disconnected');
+        }
+    }
+
+    // 刷新连接状态
+    async refreshConnection() {
+        const refreshBtn = document.getElementById('refreshBtn');
+        const originalText = refreshBtn.innerHTML;
+        
+        // 显示刷新中状态
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 连接中...';
+        refreshBtn.disabled = true;
+        
+        try {
+            await this.checkStatus();
+            this.showMessage('连接状态已刷新', 'success');
+        } catch (error) {
+            console.error('刷新连接失败:', error);
+            this.showMessage('刷新连接失败', 'error');
+        } finally {
+            // 恢复按钮状态
+            refreshBtn.innerHTML = originalText;
+            refreshBtn.disabled = false;
         }
     }
 
@@ -345,10 +370,11 @@ class ChatlogApp {
         try {
             // 构建查询参数
             const params = new URLSearchParams();
-            params.append('timeRange', timeRange);
+            // 注意：后端API使用 'time' 参数而不是 'timeRange'
+            params.append('time', timeRange);
             params.append('talker', talker);
             params.append('limit', limit.toString());
-            params.append('page', this.currentPage.toString());
+            params.append('offset', (this.currentPage * limit).toString());
             params.append('format', 'json');
             
             const response = await fetch(`/api/chatlog?${params}`);

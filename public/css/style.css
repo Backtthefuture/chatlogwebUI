@@ -110,6 +110,48 @@ body {
 .toolbar-right {
     display: flex;
     align-items: center;
+    gap: 1rem;
+}
+
+/* 刷新连接按钮样式 */
+.refresh-connection-btn {
+    background: rgba(0, 122, 255, 0.08) !important;
+    border: 1px solid rgba(0, 122, 255, 0.15) !important;
+    color: #007AFF !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.refresh-connection-btn:hover {
+    background: rgba(0, 122, 255, 0.12) !important;
+    border-color: rgba(0, 122, 255, 0.25) !important;
+}
+
+/* 连接失败时的高亮样式 */
+.refresh-connection-btn.disconnected {
+    background: rgba(255, 69, 58, 0.1) !important;
+    border: 1px solid rgba(255, 69, 58, 0.3) !important;
+    color: #FF453A !important;
+    animation: pulse-red 2s infinite;
+    box-shadow: 0 0 0 4px rgba(255, 69, 58, 0.1);
+}
+
+.refresh-connection-btn.disconnected:hover {
+    background: rgba(255, 69, 58, 0.15) !important;
+    border-color: rgba(255, 69, 58, 0.4) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(255, 69, 58, 0.2);
+}
+
+@keyframes pulse-red {
+    0% { 
+        box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.4);
+    }
+    70% { 
+        box-shadow: 0 0 0 10px rgba(255, 69, 58, 0);
+    }
+    100% { 
+        box-shadow: 0 0 0 0 rgba(255, 69, 58, 0);
+    }
 }
 
 /* 中部AI分析主控区 - 苹果风格 */
