@@ -354,6 +354,55 @@ class ChatlogApp {
         }
     }
 
+    // 转换时间范围关键词为实际时间范围
+    convertTimeRange(timeRange) {
+        if (timeRange.includes('~')) {
+            // 已经是时间范围格式，直接返回
+            return timeRange;
+        }
+        
+        const today = new Date();
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        switch (timeRange) {
+            case 'today':
+                const todayStr = formatDate(today);
+                return `${todayStr}~${todayStr}`;
+                
+            case 'yesterday':
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = formatDate(yesterday);
+                return `${yesterdayStr}~${yesterdayStr}`;
+                
+            case 'week':
+                const weekAgo = new Date(today);
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                return `${formatDate(weekAgo)}~${formatDate(today)}`;
+                
+            case 'month':
+                const monthAgo = new Date(today);
+                monthAgo.setMonth(monthAgo.getMonth() - 1);
+                return `${formatDate(monthAgo)}~${formatDate(today)}`;
+                
+            case 'custom':
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                if (startDate && endDate) {
+                    return `${startDate}~${endDate}`;
+                }
+                return timeRange; // 回退到原值
+                
+            default:
+                return timeRange;
+        }
+    }
+
     // 搜索聊天记录
     async searchChatlog() {
         const timeRange = document.getElementById('timeRange').value;
@@ -371,7 +420,9 @@ class ChatlogApp {
             // 构建查询参数
             const params = new URLSearchParams();
             // 注意：后端API使用 'time' 参数而不是 'timeRange'
-            params.append('time', timeRange);
+            // 转换时间关键词为实际时间范围
+            const actualTimeRange = this.convertTimeRange(timeRange);
+            params.append('time', actualTimeRange);
             params.append('talker', talker);
             params.append('limit', limit.toString());
             params.append('offset', (this.currentPage * limit).toString());
