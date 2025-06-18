@@ -44,20 +44,10 @@
         <header class="top-toolbar">
             <div class="toolbar-left">
                 <h1><i class="fas fa-comments"></i> 聊天记录查询系统</h1>
-                <span class="version-badge">v1.7.0</span>
+                <span class="version-badge">v2.3.3</span>
             </div>
             <div class="toolbar-center">
-                <div class="quick-actions-toolbar">
-                    <button id="loadContactsBtn" class="toolbar-btn">
-                        <i class="fas fa-users"></i> 联系人
-                    </button>
-                    <button id="loadChatroomsBtn" class="toolbar-btn">
-                        <i class="fas fa-comments"></i> 群聊
-                    </button>
-                    <button id="loadSessionsBtn" class="toolbar-btn">
-                        <i class="fas fa-clock"></i> 最近会话
-                    </button>
-                </div>
+                <!-- 将快捷操作按钮移至聊天记录查询区域 -->
             </div>
             <div class="toolbar-right">
                 <button id="refreshBtn" class="toolbar-btn refresh-connection-btn" title="刷新连接状态">
@@ -240,6 +230,17 @@
         <section class="chat-section">
             <div class="panel-header">
                 <h3><i class="fas fa-search"></i> 聊天记录查询</h3>
+                <div class="chat-quick-actions">
+                    <button id="loadContactsBtn" class="chat-action-btn">
+                        <i class="fas fa-users"></i> 联系人
+                    </button>
+                    <button id="loadChatroomsBtn" class="chat-action-btn">
+                        <i class="fas fa-comments"></i> 群聊
+                    </button>
+                    <button id="loadSessionsBtn" class="chat-action-btn">
+                        <i class="fas fa-clock"></i> 最近会话
+                    </button>
+                </div>
             </div>
             
             <main class="chat-panel">
@@ -306,7 +307,7 @@
                             <div class="tips">
                                 <h4>使用提示：</h4>
                                 <ul>
-                                    <li>首先点击顶部"联系人"或"群聊"获取聊天对象列表</li>
+                                    <li>首先点击右上角"联系人"或"群聊"获取聊天对象列表</li>
                                     <li>选择时间范围和聊天对象进行精确查询</li>
                                     <li>支持查看图片、语音等多媒体消息</li>
                                     <li>可以导出查询结果为文本格式</li>

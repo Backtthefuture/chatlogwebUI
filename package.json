@@ -1,6 +1,6 @@
 {
   "name": "chatlog-web",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "聊天记录查询和显示网站",
   "main": "server.js",
   "scripts": {
