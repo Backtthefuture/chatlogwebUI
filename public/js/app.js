@@ -65,10 +65,6 @@ class ChatlogApp {
         });
 
         // 控制按钮
-        document.getElementById('exportBtn').addEventListener('click', () => {
-            this.exportData();
-        });
-
         document.getElementById('refreshBtn').addEventListener('click', () => {
             this.refreshData();
         });
@@ -335,78 +331,24 @@ class ChatlogApp {
 
     // 搜索聊天记录
     async searchChatlog() {
+        const timeRange = document.getElementById('timeRange').value;
+        const talker = document.getElementById('talkerSelect').value;
+        const limit = parseInt(document.getElementById('limitSelect').value);
+
+        if (!talker) {
+            this.showMessage('请选择聊天对象', 'error');
+            return;
+        }
+
         this.showLoading();
         
         try {
-            const formData = new FormData(document.getElementById('searchForm'));
+            // 构建查询参数
             const params = new URLSearchParams();
-            
-            // 处理聊天对象参数 - 必须提供
-            const talker = formData.get('talker');
-            if (!talker) {
-                throw new Error('请选择聊天对象');
-            }
+            params.append('timeRange', timeRange);
             params.append('talker', talker);
-            this.selectedTalker = talker;
-            
-            // 处理时间参数 - 必须提供
-            const timeRange = formData.get('timeRange');
-            let timeParam = null;
-            
-            if (timeRange && timeRange !== '' && timeRange !== 'all') {
-                if (timeRange === 'custom') {
-                    const startDate = formData.get('startDate');
-                    const endDate = formData.get('endDate');
-                    if (startDate && endDate) {
-                        timeParam = `${startDate}~${endDate}`;
-                    } else if (startDate) {
-                        timeParam = startDate;
-                    } else if (endDate) {
-                        timeParam = endDate;
-                    }
-                } else {
-                    // 使用预设的时间范围
-                    const today = new Date();
-                    const endDateStr = this.formatLocalDate(today);
-                    
-                    switch (timeRange) {
-                        case 'today':
-                            timeParam = endDateStr;
-                            break;
-                        case 'yesterday':
-                            const yesterday = new Date(today);
-                            yesterday.setDate(yesterday.getDate() - 1);
-                            timeParam = this.formatLocalDate(yesterday);
-                            break;
-                        case 'week':
-                            const weekAgo = new Date(today);
-                            weekAgo.setDate(weekAgo.getDate() - 7);
-                            timeParam = `${this.formatLocalDate(weekAgo)}~${endDateStr}`;
-                            break;
-                        case 'month':
-                            const monthAgo = new Date(today);
-                            monthAgo.setMonth(monthAgo.getMonth() - 1);
-                            timeParam = `${this.formatLocalDate(monthAgo)}~${endDateStr}`;
-                            break;
-                    }
-                }
-            }
-            
-            // 如果没有提供时间参数，使用默认的最近一个月
-            if (!timeParam) {
-                const today = new Date();
-                const monthAgo = new Date(today);
-                monthAgo.setMonth(monthAgo.getMonth() - 1);
-                timeParam = `${this.formatLocalDate(monthAgo)}~${this.formatLocalDate(today)}`;
-            }
-            
-            params.append('time', timeParam);
-            
-            // 处理分页参数
-            const limit = formData.get('limit') || this.pageSize;
-            const offset = (this.currentPage - 1) * limit;
-            params.append('limit', limit);
-            params.append('offset', offset);
+            params.append('limit', limit.toString());
+            params.append('page', this.currentPage.toString());
             params.append('format', 'json');
             
             const response = await fetch(`/api/chatlog?${params}`);
@@ -416,7 +358,8 @@ class ChatlogApp {
                 this.currentData = data;
                 this.displayChatMessages(data);
                 this.updatePagination(data.length >= limit);
-                document.getElementById('exportBtn').disabled = false;
+                
+
                 
                 // 更新聊天标题
                 const chatTitle = document.getElementById('chatTitle');
@@ -671,38 +614,7 @@ class ChatlogApp {
         this.searchChatlog();
     }
 
-    // 导出数据
-    exportData() {
-        if (!this.currentData || this.currentData.length === 0) {
-            this.showMessage('没有数据可导出', 'error');
-            return;
-        }
-        
-        let content = '聊天记录导出\n';
-        content += '==================\n\n';
-        
-        this.currentData.forEach(message => {
-            const time = this.formatTime(message.timestamp || message.time);
-            const sender = message.sender || message.senderName || '未知';
-            const messageContent = message.content || message.message || `[${message.type}消息]`;
-            
-            content += `${time} ${sender}:\n${messageContent}\n\n`;
-        });
-        
-        // 创建下载链接
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `chatlog_${this.formatLocalDate(new Date())}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        URL.revokeObjectURL(url);
-        this.showMessage('导出成功', 'success');
-    }
+
 
     // 显示错误信息
     displayError(message) {
@@ -1022,7 +934,13 @@ class ChatlogApp {
                     <button onclick="window.open('/analysis/${record.id}', '_blank')" class="view-btn">
                         <i class="fas fa-eye"></i> 查看
                     </button>
-                    <button onclick="window.chatlogApp.deleteAnalysisHistory('${record.id}', '${record.title}')" class="delete-history-btn">
+                    <button class="export-chatlog-btn" title="导出原始聊天记录" data-record-id="${record.id}" data-record-title="${record.title}">
+                        <i class="fas fa-file-text"></i> 导出记录
+                    </button>
+                    <button class="export-analysis-btn" title="导出AI分析报告" data-record-id="${record.id}" data-record-title="${record.title}">
+                        <i class="fas fa-download"></i> 导出分析
+                    </button>
+                    <button class="delete-history-btn" data-record-id="${record.id}" data-record-title="${record.title}">
                         <i class="fas fa-trash"></i> 删除
                     </button>
                 </div>
@@ -1032,6 +950,39 @@ class ChatlogApp {
         });
 
         historyContainer.appendChild(historyList);
+        
+        // 绑定导出和删除按钮事件
+        this.bindHistoryButtonEvents();
+    }
+    
+    // 绑定历史记录按钮事件
+    bindHistoryButtonEvents() {
+        // 导出聊天记录按钮
+        document.querySelectorAll('.export-chatlog-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const recordId = e.currentTarget.dataset.recordId;
+                const recordTitle = e.currentTarget.dataset.recordTitle;
+                this.exportChatlogFromHistory(recordId, recordTitle);
+            });
+        });
+        
+        // 导出分析报告按钮
+        document.querySelectorAll('.export-analysis-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const recordId = e.currentTarget.dataset.recordId;
+                const recordTitle = e.currentTarget.dataset.recordTitle;
+                this.exportAnalysisFromHistory(recordId, recordTitle);
+            });
+        });
+        
+        // 删除历史记录按钮
+        document.querySelectorAll('.delete-history-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const recordId = e.currentTarget.dataset.recordId;
+                const recordTitle = e.currentTarget.dataset.recordTitle;
+                this.deleteAnalysisHistory(recordId, recordTitle);
+            });
+        });
     }
 
 
@@ -1186,6 +1137,86 @@ class ChatlogApp {
             this.showMessage('删除失败: ' + error.message, 'error');
         }
     }
+
+    // 从历史记录导出聊天记录
+    async exportChatlogFromHistory(recordId, recordTitle) {
+        try {
+            // 获取该分析记录的原始聊天数据
+            const response = await fetch(`/api/analysis-chatlog/${recordId}`);
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || '获取聊天记录失败');
+            }
+            
+            const chatData = result.data;
+            
+            // 生成文本内容
+            let content = `聊天记录导出\n`;
+            content += `来源分析: ${recordTitle}\n`;
+            content += `导出时间: ${new Date().toLocaleString('zh-CN')}\n`;
+            content += '==================\n\n';
+            
+            chatData.forEach(message => {
+                const time = this.formatTime(message.timestamp || message.time);
+                const sender = message.sender || message.senderName || '未知';
+                const messageContent = message.content || message.message || `[${message.type}消息]`;
+                
+                content += `${time} ${sender}:\n${messageContent}\n\n`;
+            });
+            
+            // 创建下载链接
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chatlog_${recordTitle.replace(/[^\w\u4e00-\u9fa5]/g, '_')}_${this.formatLocalDate(new Date())}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            URL.revokeObjectURL(url);
+            this.showMessage('聊天记录导出成功', 'success');
+            
+        } catch (error) {
+            console.error('导出聊天记录失败:', error);
+            this.showMessage('导出聊天记录失败: ' + error.message, 'error');
+        }
+    }
+
+    // 从历史记录导出AI分析报告
+    async exportAnalysisFromHistory(recordId, recordTitle) {
+        try {
+            // 获取分析报告的HTML内容
+            const response = await fetch(`/api/analysis-content/${recordId}`);
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || '获取分析内容失败');
+            }
+            
+            const htmlContent = result.content;
+            
+            // 创建下载链接
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `analysis_${recordTitle.replace(/[^\w\u4e00-\u9fa5]/g, '_')}_${this.formatLocalDate(new Date())}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            URL.revokeObjectURL(url);
+            this.showMessage('AI分析报告导出成功', 'success');
+            
+        } catch (error) {
+            console.error('导出分析报告失败:', error);
+            this.showMessage('导出分析报告失败: ' + error.message, 'error');
+        }
+    }
     
     // ============ 批量分析功能 ============
     
@@ -1300,6 +1331,7 @@ class ChatlogApp {
                         ...currentItem,
                         historyId: result.historyId
                     });
+                    
                     console.log(`✅ ${currentItem.name} 分析成功`);
                 } else {
                     state.results.failed.push({

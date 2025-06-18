@@ -1145,6 +1145,58 @@ body {
     font-size: 0.75rem;
 }
 
+/* 导出按钮样式 */
+.export-chatlog-btn,
+.export-analysis-btn {
+    padding: 0.4rem 0.75rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.export-chatlog-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+.export-chatlog-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.export-analysis-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+
+.export-analysis-btn:hover {
+    background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.export-chatlog-btn i,
+.export-analysis-btn i {
+    margin-right: 0.25rem;
+}
+
+/* 调整历史记录操作按钮布局 */
+.history-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 /* 历史记录滚动条样式 */
 .analysis-history::-webkit-scrollbar {
     width: 6px;

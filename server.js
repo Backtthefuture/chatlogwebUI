@@ -475,6 +475,124 @@ app.delete('/api/analysis-history/:id', (req, res) => {
   }
 });
 
+// 获取分析记录的原始聊天数据（用于导出聊天记录）
+app.get('/api/analysis-chatlog/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const filepath = path.join(HISTORY_DIR, `${id}.json`);
+    
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ success: false, error: '分析记录不存在' });
+    }
+    
+    const record = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    
+    // 从记录中获取群组名称和时间范围，重新查询聊天数据
+    const groupName = record.groupName || record.metadata?.groupName;
+    const timeRange = record.timeRange || record.metadata?.timeRange;
+    
+    if (!groupName) {
+      return res.status(400).json({ success: false, error: '分析记录中缺少群组信息' });
+    }
+    
+    try {
+      // 重新获取聊天数据
+      const chatData = await getChatData(groupName, timeRange);
+      res.json({ success: true, data: chatData });
+    } catch (error) {
+      console.error('获取聊天数据失败:', error);
+      res.status(500).json({ success: false, error: '获取聊天数据失败: ' + error.message });
+    }
+    
+  } catch (error) {
+    console.error('获取分析聊天记录失败:', error);
+    res.status(500).json({ success: false, error: '获取分析聊天记录失败' });
+  }
+});
+
+// 获取分析记录的HTML内容（用于导出分析报告）
+app.get('/api/analysis-content/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const filepath = path.join(HISTORY_DIR, `${id}.json`);
+    
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ success: false, error: '分析记录不存在' });
+    }
+    
+    const record = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    let content = record.content || '';
+    
+    // 检查内容是否被markdown代码块包装
+    if (content.trim().startsWith('```html') && content.trim().endsWith('```')) {
+      // 移除markdown代码块包装
+      content = content.trim().slice(7, -3).trim();
+    }
+    
+    // 如果内容不是完整的HTML页面，需要包装
+    if (!content.trim().toLowerCase().startsWith('<!doctype html') && 
+        !content.trim().toLowerCase().startsWith('<html')) {
+      
+      // 简单的Markdown到HTML转换（复用现有逻辑）
+      let htmlContent = content
+        .replace(/\n/g, '<br>')
+        .replace(/#{6}\s*(.*?)(<br>|$)/g, '<h6>$1</h6>')
+        .replace(/#{5}\s*(.*?)(<br>|$)/g, '<h5>$1</h5>')
+        .replace(/#{4}\s*(.*?)(<br>|$)/g, '<h4>$1</h4>')
+        .replace(/#{3}\s*(.*?)(<br>|$)/g, '<h3>$1</h3>')
+        .replace(/#{2}\s*(.*?)(<br>|$)/g, '<h2>$1</h2>')
+        .replace(/#{1}\s*(.*?)(<br>|$)/g, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>');
+      
+      // 包装为完整的HTML页面
+      content = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${record.title || 'AI分析结果'}</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 1200px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #f8f9fa;
+            }
+            .container {
+              background: white;
+              padding: 30px;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+            h2 { color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; margin-top: 30px; }
+            h3 { color: #7f8c8d; margin-top: 25px; }
+            h4, h5, h6 { color: #95a5a6; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            ${htmlContent}
+          </div>
+        </body>
+        </html>
+      `;
+    }
+    
+    res.json({ success: true, content: content });
+    
+  } catch (error) {
+    console.error('获取分析内容失败:', error);
+    res.status(500).json({ success: false, error: '获取分析内容失败' });
+  }
+});
+
 // 新页面展示分析结果
 app.get('/analysis/:id', (req, res) => {
   try {
