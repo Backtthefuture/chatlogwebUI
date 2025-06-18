@@ -275,7 +275,7 @@ async function callDeepSeekAPI(prompt, systemPrompt) {
     console.log('发送到AI的提示词长度:', prompt.length);
     
     const response = await axios.post(`${DEEPSEEK_API_BASE}/chat/completions`, {
-      model: 'deepseek-chat',  // 使用更稳定的chat模型
+      model: 'deepseek-reasoner',  // 使用推理能力更强的reasoner模型
       messages: [
         {
           role: 'system',
@@ -286,8 +286,8 @@ async function callDeepSeekAPI(prompt, systemPrompt) {
           content: prompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 8000,  // 增加输出长度
+      temperature: 1.0,
+      max_tokens: 64000,  // 增加输出长度
       stream: false      // 禁用流式输出确保稳定性
     }, {
       headers: {
