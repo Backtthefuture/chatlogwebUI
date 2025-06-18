@@ -1600,12 +1600,12 @@ class ChatlogApp {
         }
     }
     
-    // 显示分析项列表
+    // 显示分析项列表（工具提示形式）
     displayScheduledItems(items) {
-        const itemsList = document.getElementById('itemsList');
+        const tooltipContent = document.getElementById('tooltipContent');
         
         if (items.length === 0) {
-            itemsList.innerHTML = '<p class="loading-items">暂无配置的分析项，请先在上方配置AI分析设置</p>';
+            tooltipContent.innerHTML = '<p class="loading-items">暂无配置的分析项<br><small>请先在上方配置AI分析设置</small></p>';
             return;
         }
         
@@ -1615,22 +1615,10 @@ class ChatlogApp {
                     <div class="item-name">${item.name}</div>
                     <div class="item-group">群聊: ${item.groupName}</div>
                 </div>
-                <div class="item-type">${this.getAnalysisTypeLabel(item.analysisType)}</div>
             </div>
         `).join('');
         
-        itemsList.innerHTML = itemsHTML;
-    }
-    
-    // 获取分析类型标签
-    getAnalysisTypeLabel(type) {
-        const labels = {
-            'programming': '编程分析',
-            'science': '科学分析',
-            'reading': '阅读分析',
-            'custom': '自定义分析'
-        };
-        return labels[type] || '未知类型';
+        tooltipContent.innerHTML = itemsHTML;
     }
     
     // 手动触发定时分析
@@ -1683,13 +1671,13 @@ class ChatlogApp {
         const enabledElement = document.getElementById('scheduledEnabled');
         const timeElement = document.getElementById('scheduledTime');
         const countElement = document.getElementById('scheduledItemCount');
-        const itemsList = document.getElementById('itemsList');
+        const tooltipContent = document.getElementById('tooltipContent');
         
         enabledElement.textContent = '❌ 检查失败';
         enabledElement.className = 'status-value disabled';
         timeElement.textContent = '-';
         countElement.textContent = '-';
-        itemsList.innerHTML = `<p class="loading-items">❌ ${message}</p>`;
+        tooltipContent.innerHTML = `<p class="loading-items">❌ ${message}</p>`;
         
         // 禁用触发按钮
         const triggerBtn = document.getElementById('triggerScheduledBtn');

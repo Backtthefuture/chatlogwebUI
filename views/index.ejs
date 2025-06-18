@@ -206,6 +206,14 @@
                     <div class="status-item">
                         <span class="status-label">分析项数量:</span>
                         <span class="status-value" id="scheduledItemCount">-</span>
+                        <i class="fas fa-info-circle status-info-icon" id="scheduledItemsInfo" title="查看配置的分析项"></i>
+                        <!-- 分析项详情浮窗 -->
+                        <div class="items-tooltip" id="itemsTooltip">
+                            <div class="tooltip-header">配置的分析项:</div>
+                            <div class="tooltip-content" id="tooltipContent">
+                                <p class="loading-items">正在加载配置...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -219,24 +227,6 @@
                     <button type="button" id="configScheduledBtn" class="scheduled-btn config-btn">
                         <i class="fas fa-cog"></i> 配置定时任务
                     </button>
-                </div>
-                
-                <div class="scheduled-items" id="scheduledItems">
-                    <h4>配置的分析项:</h4>
-                    <div class="items-list" id="itemsList">
-                        <p class="loading-items">正在加载配置...</p>
-                    </div>
-                </div>
-                
-                <div class="scheduled-help">
-                    <h4>💡 使用说明:</h4>
-                    <ul>
-                        <li>定时分析会自动执行所有已配置的分析项</li>
-                        <li>默认分析昨天的聊天数据</li>
-                        <li>需要在 .env 文件中设置 ENABLE_SCHEDULED_ANALYSIS=true 启用</li>
-                        <li>可通过 SCHEDULED_ANALYSIS_TIME 设置执行时间（Cron格式）</li>
-                        <li>分析结果会自动保存到历史记录中</li>
-                    </ul>
                 </div>
             </div>
         </section>

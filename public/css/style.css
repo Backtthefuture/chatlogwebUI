@@ -1462,7 +1462,6 @@ body {
 
 .analysis-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 0.75rem;
     background: white;
@@ -1486,38 +1485,7 @@ body {
     color: #6b7280;
 }
 
-.item-type {
-    font-size: 0.75rem;
-    padding: 0.125rem 0.5rem;
-    border-radius: 12px;
-    background: #f3f4f6;
-    color: #6b7280;
-}
 
-.scheduled-help {
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    border: 1px solid rgba(102, 126, 234, 0.1);
-}
-
-.scheduled-help h4 {
-    margin: 0 0 0.75rem 0;
-    color: #374151;
-    font-size: 0.95rem;
-}
-
-.scheduled-help ul {
-    margin: 0;
-    padding-left: 1.25rem;
-    color: #6b7280;
-    font-size: 0.85rem;
-    line-height: 1.5;
-}
-
-.scheduled-help li {
-    margin-bottom: 0.25rem;
-}
 
 .loading-items {
     text-align: center;
@@ -2452,4 +2420,123 @@ body {
     padding: 0.75rem 1rem;
     border-radius: 8px;
     border: 1px solid #dee2e6;
-} 
+}
+
+/* 定时分析状态信息图标和工具提示 */
+.status-info-icon {
+    margin-left: 0.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+.status-info-icon:hover {
+    color: #374151;
+}
+
+.items-tooltip {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    padding: 0;
+    min-width: 280px;
+    max-width: 400px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    margin-top: 0.5rem;
+}
+
+.status-info-icon:hover + .items-tooltip,
+.items-tooltip:hover {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tooltip-header {
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.tooltip-content {
+    padding: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.tooltip-content .analysis-item {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.25rem;
+    border-radius: 4px;
+    border: 1px solid #f3f4f6;
+    background: #fafafa;
+}
+
+.tooltip-content .analysis-item:last-child {
+    margin-bottom: 0;
+}
+
+.tooltip-content .item-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+.tooltip-content .item-group {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.125rem;
+}
+
+.tooltip-content .loading-items {
+    padding: 1rem;
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* 工具提示箭头 */
+.items-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid #e5e7eb;
+}
+
+.items-tooltip::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid white;
+}
+
+/* 确保状态项支持相对定位 */
+.status-item {
+    position: relative;
+}
