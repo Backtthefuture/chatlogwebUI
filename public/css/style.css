@@ -2710,3 +2710,377 @@ body {
 .status-item {
     position: relative;
 }
+
+/* 聊天快捷操作按钮样式 */
+.chat-quick-actions .chat-action-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 模型设置弹窗样式 */
+.model-settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.model-settings-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.model-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.model-settings-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.model-settings-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.model-settings-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.model-settings-body {
+    padding: 24px;
+}
+
+.settings-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.settings-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.settings-section h4 {
+    margin: 0 0 16px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 提供商选择样式 */
+.provider-selection {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.provider-option {
+    position: relative;
+}
+
+.provider-option input[type="radio"] {
+    display: none;
+}
+
+.provider-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.provider-label:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.provider-option input[type="radio"]:checked + .provider-label {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.provider-icon {
+    font-size: 1.5rem;
+}
+
+.provider-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.provider-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.provider-desc {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* 配置组样式 */
+.config-group {
+    margin-bottom: 16px;
+}
+
+.config-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.config-group select,
+.config-group input[type="text"],
+.config-group input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.config-group select:focus,
+.config-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* API Key 输入框样式 */
+.api-key-input {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.api-key-input input {
+    padding-right: 40px;
+}
+
+.toggle-visibility {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+
+.toggle-visibility:hover {
+    color: #374151;
+}
+
+.key-status {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    padding: 4px 0;
+}
+
+.key-status.valid {
+    color: #10b981;
+}
+
+.key-status.invalid {
+    color: #ef4444;
+}
+
+.key-status.testing {
+    color: #f59e0b;
+}
+
+/* 测试连接样式 */
+.test-connection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.test-btn {
+    padding: 10px 20px;
+    background: #f59e0b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    align-self: flex-start;
+}
+
+.test-btn:hover {
+    background: #d97706;
+}
+
+.test-btn:disabled {
+    background: #d1d5db;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.test-result {
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    display: none;
+}
+
+.test-result.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    display: block;
+}
+
+.test-result.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+    display: block;
+}
+
+.test-result.testing {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    display: block;
+}
+
+/* 操作按钮样式 */
+.settings-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.settings-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.save-btn {
+    background: #10b981;
+    color: white;
+}
+
+.save-btn:hover {
+    background: #059669;
+}
+
+.reset-btn {
+    background: #f59e0b;
+    color: white;
+}
+
+.reset-btn:hover {
+    background: #d97706;
+}
+
+.cancel-btn {
+    background: #6b7280;
+    color: white;
+}
+
+.cancel-btn:hover {
+    background: #4b5563;
+}
+
+/* 响应式设计 */
+@media (max-width: 640px) {
+    .model-settings-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .provider-selection {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings-actions {
+        flex-direction: column;
+    }
+    
+    .settings-actions button {
+        justify-content: center;
+    }
+}
+
+/* 工具栏按钮样式优化 */
+.model-settings-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.model-settings-btn:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}

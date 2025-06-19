@@ -44,12 +44,15 @@
         <header class="top-toolbar">
             <div class="toolbar-left">
                 <h1><i class="fas fa-comments"></i> 聊天记录查询系统</h1>
-                <span class="version-badge">v2.3.4</span>
+                <span class="version-badge">v2.4.0</span>
             </div>
             <div class="toolbar-center">
                 <!-- 将快捷操作按钮移至聊天记录查询区域 -->
             </div>
             <div class="toolbar-right">
+                <button id="modelSettingsBtn" class="toolbar-btn model-settings-btn" title="模型设置">
+                    <i class="fas fa-cog"></i> 模型设置
+                </button>
                 <button id="refreshBtn" class="toolbar-btn refresh-connection-btn" title="刷新连接状态">
                     <i class="fas fa-refresh"></i> 刷新连接
                 </button>
@@ -630,8 +633,121 @@
         </div>
     </div>
 
+    <!-- 模型设置模态框 -->
+    <div class="model-settings-modal" id="modelSettingsModal">
+        <div class="model-settings-content">
+            <div class="model-settings-header">
+                <h3><i class="fas fa-brain"></i> 模型设置</h3>
+                <button class="model-settings-close" id="closeModelSettings">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="model-settings-body">
+                <form id="modelSettingsForm">
+                    <!-- 模型提供商选择 -->
+                    <div class="settings-section">
+                        <h4><i class="fas fa-server"></i> 模型提供商</h4>
+                        <div class="provider-selection">
+                            <div class="provider-option">
+                                <input type="radio" id="providerDeepSeek" name="modelProvider" value="DeepSeek" checked>
+                                <label for="providerDeepSeek" class="provider-label">
+                                    <div class="provider-icon">🤖</div>
+                                    <div class="provider-info">
+                                        <span class="provider-name">DeepSeek</span>
+                                        <span class="provider-desc">高性能推理模型</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="provider-option">
+                                <input type="radio" id="providerGemini" name="modelProvider" value="Gemini">
+                                <label for="providerGemini" class="provider-label">
+                                    <div class="provider-icon">✨</div>
+                                    <div class="provider-info">
+                                        <span class="provider-name">Gemini</span>
+                                        <span class="provider-desc">Google 大语言模型</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DeepSeek 配置 -->
+                    <div class="settings-section provider-config" id="deepseekConfig">
+                        <h4><i class="fas fa-cog"></i> DeepSeek 配置</h4>
+                        <div class="config-group">
+                            <label for="deepseekModel">模型选择：</label>
+                            <select id="deepseekModel" name="deepseekModel">
+                                <option value="deepseek-chat">deepseek-chat (通用对话)</option>
+                                <option value="deepseek-reasoner">deepseek-reasoner (推理增强)</option>
+                            </select>
+                        </div>
+                        <div class="config-group">
+                            <label for="deepseekApiKey">API Key：</label>
+                            <div class="api-key-input">
+                                <input type="password" id="deepseekApiKey" name="deepseekApiKey" 
+                                       placeholder="sk-xxxxxxxxxxxxxxxxxxxxx">
+                                <button type="button" class="toggle-visibility" data-target="deepseekApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="key-status" id="deepseekKeyStatus"></div>
+                        </div>
+                    </div>
+
+                    <!-- Gemini 配置 -->
+                    <div class="settings-section provider-config" id="geminiConfig" style="display: none;">
+                        <h4><i class="fas fa-cog"></i> Gemini 配置</h4>
+                        <div class="config-group">
+                            <label for="geminiModel">模型选择：</label>
+                            <select id="geminiModel" name="geminiModel">
+                                <option value="gemini-pro">gemini-pro (通用模型)</option>
+                                <option value="gemini-pro-vision">gemini-pro-vision (多模态)</option>
+                            </select>
+                        </div>
+                        <div class="config-group">
+                            <label for="geminiApiKey">API Key：</label>
+                            <div class="api-key-input">
+                                <input type="password" id="geminiApiKey" name="geminiApiKey" 
+                                       placeholder="AIxxxxxxxxxxxxxxxxxxxxx">
+                                <button type="button" class="toggle-visibility" data-target="geminiApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="key-status" id="geminiKeyStatus"></div>
+                        </div>
+                    </div>
+
+                    <!-- 测试连接 -->
+                    <div class="settings-section">
+                        <h4><i class="fas fa-wifi"></i> 连接测试</h4>
+                        <div class="test-connection">
+                            <button type="button" id="testConnectionBtn" class="test-btn">
+                                <i class="fas fa-flask"></i> 测试连接
+                            </button>
+                            <div class="test-result" id="testResult"></div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="settings-actions">
+                        <button type="button" id="saveModelSettings" class="save-btn">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                        <button type="button" id="resetModelSettings" class="reset-btn">
+                            <i class="fas fa-undo"></i> 恢复默认
+                        </button>
+                        <button type="button" id="cancelModelSettings" class="cancel-btn">
+                            <i class="fas fa-times"></i> 取消
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/preset-prompts.js?v=<%= Date.now() %>"></script>
-<script src="/js/ai-settings.js?v=<%= Date.now() %>"></script>
-<script src="/js/app.js?v=<%= Date.now() %>"></script>
+    <script src="/js/model-settings.js?v=<%= Date.now() %>"></script>
+    <script src="/js/ai-settings.js?v=<%= Date.now() %>"></script>
+    <script src="/js/app.js?v=<%= Date.now() %>"></script>
 </body>
 </html> 

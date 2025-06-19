@@ -275,40 +275,116 @@ async function getChatData(talker, timeRange = '2024-01-01~2025-12-31') {
   }
 }
 
-async function callDeepSeekAPI(prompt, systemPrompt) {
+// 通用AI调用函数
+async function callAI(prompt, systemPrompt) {
   try {
     console.log('发送到AI的提示词长度:', prompt.length);
     
-    const response = await axios.post(`${DEEPSEEK_API_BASE}/chat/completions`, {
-      model: 'deepseek-reasoner',  // 使用推理能力更强的reasoner模型
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 1.0,
-      max_tokens: 64000,  // 增加输出长度
-      stream: false      // 禁用流式输出确保稳定性
-    }, {
-      headers: {
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 120000 // 增加到120秒超时
-    });
+    // 读取模型设置
+    const modelConfig = await getModelConfig();
+    const provider = modelConfig.provider;
+    const config = modelConfig.config;
 
-    return response.data.choices[0].message.content;
+    let response;
+
+    if (provider === 'DeepSeek') {
+      response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+        model: config.model,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 1.0,
+        max_tokens: 64000,
+        stream: false
+      }, {
+        headers: {
+          'Authorization': `Bearer ${config.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 120000
+      });
+      
+      return response.data.choices[0].message.content;
+      
+    } else if (provider === 'Gemini') {
+      response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.apiKey}`, {
+        contents: [{
+          parts: [{
+            text: `${systemPrompt}\n\n${prompt}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 1.0,
+          maxOutputTokens: 32768
+        }
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 120000
+      });
+      
+      return response.data.candidates[0].content.parts[0].text;
+    }
+    
+    throw new Error('不支持的AI提供商');
+    
   } catch (error) {
-    console.error('DeepSeek API调用失败:', error.message);
+    console.error('AI API调用失败:', error.message);
     if (error.response) {
       console.error('API错误响应:', error.response.status, error.response.data);
     }
     throw error;
+  }
+}
+
+// 向后兼容的DeepSeek API调用函数
+async function callDeepSeekAPI(prompt, systemPrompt) {
+  return await callAI(prompt, systemPrompt);
+}
+
+// 获取当前模型配置
+async function getModelConfig() {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const modelSettingsPath = path.join(__dirname, 'model-settings.json');
+    
+    if (fs.existsSync(modelSettingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(modelSettingsPath, 'utf8'));
+      const provider = settings.modelProvider;
+      
+      return {
+        provider: provider,
+        config: settings[provider.toLowerCase()]
+      };
+    } else {
+      // 返回默认配置（使用环境变量中的DeepSeek配置）
+      return {
+        provider: 'DeepSeek',
+        config: {
+          model: 'deepseek-reasoner',
+          apiKey: DEEPSEEK_API_KEY
+        }
+      };
+    }
+  } catch (error) {
+    console.error('读取模型配置失败:', error);
+    // 返回默认配置
+    return {
+      provider: 'DeepSeek',
+      config: {
+        model: 'deepseek-reasoner',
+        apiKey: DEEPSEEK_API_KEY
+      }
+    };
   }
 }
 
@@ -386,8 +462,8 @@ app.post('/api/ai-analysis', async (req, res) => {
 
 直接返回完整的HTML代码，不要有任何其他说明文字。`;
 
-    // 调用DeepSeek API
-    const htmlResult = await callDeepSeekAPI(prompt, systemPrompt);
+    // 调用AI分析
+    const analysisResult = await callAI(prompt, systemPrompt);
     
     // 保存到历史记录
     const metadata = {
@@ -399,7 +475,7 @@ app.post('/api/ai-analysis', async (req, res) => {
       title: `${groupName} - ${getAnalysisTitle(analysisType)}`
     };
     
-    const historyId = saveAnalysisHistory(metadata, htmlResult);
+    const historyId = saveAnalysisHistory(metadata, analysisResult);
     
     res.json({ 
       success: true, 
@@ -991,7 +1067,7 @@ async function executeScheduledAnalysis(analysisItem) {
 
 直接返回完整的HTML代码，不要有任何其他说明文字。`;
     
-    const analysisResult = await callDeepSeekAPI(prompt, systemPrompt);
+    const analysisResult = await callAI(prompt, systemPrompt);
     
     // 保存分析结果
     const title = `[定时] ${getAnalysisTitle(analysisItem.analysisType)} - ${analysisItem.name}`;
@@ -1430,6 +1506,304 @@ app.post('/api/test-cron-expression', (req, res) => {
     });
   }
 });
+
+// 模型设置API端点
+
+// 保存模型设置
+app.post('/api/model-settings', (req, res) => {
+  try {
+    const { modelProvider, deepseek, gemini } = req.body;
+    
+    if (!modelProvider) {
+      return res.status(400).json({
+        success: false,
+        error: '请选择模型提供商'
+      });
+    }
+    
+    // 验证配置
+    const selectedConfig = modelProvider === 'DeepSeek' ? deepseek : gemini;
+    if (!selectedConfig || !selectedConfig.apiKey || !selectedConfig.model) {
+      return res.status(400).json({
+        success: false,
+        error: '请填写完整的模型配置信息'
+      });
+    }
+    
+    // 保存到环境变量文件
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.join(__dirname, '.env');
+    
+    let envContent = '';
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    }
+    
+    // 更新模型设置相关的环境变量
+    const envUpdates = {
+      'MODEL_PROVIDER': modelProvider,
+      'DEEPSEEK_API_KEY': deepseek.apiKey,
+      'DEEPSEEK_MODEL': deepseek.model,
+      'GEMINI_API_KEY': gemini.apiKey,
+      'GEMINI_MODEL': gemini.model
+    };
+    
+    Object.keys(envUpdates).forEach(key => {
+      const value = envUpdates[key];
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      
+      if (regex.test(envContent)) {
+        envContent = envContent.replace(regex, `${key}=${value}`);
+      } else {
+        envContent += `\n${key}=${value}`;
+      }
+    });
+    
+    fs.writeFileSync(envPath, envContent.trim() + '\n');
+    
+    // 同时保存到JSON文件以便前端读取
+    const modelSettingsPath = path.join(__dirname, 'model-settings.json');
+    const settingsData = {
+      modelProvider,
+      deepseek,
+      gemini,
+      updatedAt: new Date().toISOString()
+    };
+    
+    fs.writeFileSync(modelSettingsPath, JSON.stringify(settingsData, null, 2));
+    
+    console.log('✅ 模型设置已保存');
+    
+    res.json({
+      success: true,
+      message: '模型设置保存成功'
+    });
+    
+  } catch (error) {
+    console.error('保存模型设置失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 获取模型设置
+app.get('/api/model-settings', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const modelSettingsPath = path.join(__dirname, 'model-settings.json');
+    
+    if (fs.existsSync(modelSettingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(modelSettingsPath, 'utf8'));
+      
+      // 出于安全考虑，不返回完整的API Key
+      const safeSettings = {
+        ...settings,
+        deepseek: {
+          ...settings.deepseek,
+          apiKey: settings.deepseek.apiKey ? settings.deepseek.apiKey.substring(0, 8) + '...' : ''
+        },
+        gemini: {
+          ...settings.gemini,
+          apiKey: settings.gemini.apiKey ? settings.gemini.apiKey.substring(0, 8) + '...' : ''
+        }
+      };
+      
+      res.json({
+        success: true,
+        settings: safeSettings
+      });
+    } else {
+      // 返回默认设置
+      res.json({
+        success: true,
+        settings: {
+          modelProvider: 'DeepSeek',
+          deepseek: {
+            model: 'deepseek-chat',
+            apiKey: ''
+          },
+          gemini: {
+            model: 'gemini-pro',
+            apiKey: ''
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error('获取模型设置失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 测试模型连接
+app.post('/api/model-settings/test', async (req, res) => {
+  try {
+    const { provider, config } = req.body;
+    
+    if (!provider || !config || !config.apiKey || !config.model) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供完整的测试配置'
+      });
+    }
+    
+    let testResult;
+    
+    if (provider === 'DeepSeek') {
+      testResult = await testDeepSeekConnection(config.apiKey, config.model);
+    } else if (provider === 'Gemini') {
+      testResult = await testGeminiConnection(config.apiKey, config.model);
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: '不支持的模型提供商'
+      });
+    }
+    
+    res.json(testResult);
+    
+  } catch (error) {
+    console.error('测试模型连接失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// DeepSeek连接测试函数
+async function testDeepSeekConnection(apiKey, model) {
+  try {
+    const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+      model: model,
+      messages: [
+        {
+          role: 'user',
+          content: '你好，请回复"连接测试成功"'
+        }
+      ],
+      max_tokens: 50,
+      temperature: 0.1
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+    
+    if (response.status === 200 && response.data.choices && response.data.choices[0]) {
+      return {
+        success: true,
+        message: '连接测试成功',
+        model: model,
+        response: response.data.choices[0].message.content
+      };
+    } else {
+      return {
+        success: false,
+        error: '模型响应格式异常'
+      };
+    }
+  } catch (error) {
+    console.error('DeepSeek连接测试失败:', error.message);
+    
+    if (error.response) {
+      const statusCode = error.response.status;
+      const errorData = error.response.data;
+      
+      if (statusCode === 401) {
+        return {
+          success: false,
+          error: 'API Key 无效，请检查您的密钥'
+        };
+      } else if (statusCode === 429) {
+        return {
+          success: false,
+          error: 'API 调用频率超限，请稍后重试'
+        };
+      } else {
+        return {
+          success: false,
+          error: `API 错误 (${statusCode}): ${errorData?.error?.message || '未知错误'}`
+        };
+      }
+    } else {
+      return {
+        success: false,
+        error: error.code === 'ECONNABORTED' ? '连接超时，请检查网络' : error.message
+      };
+    }
+  }
+}
+
+// Gemini连接测试函数
+async function testGeminiConnection(apiKey, model) {
+  try {
+    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      contents: [{
+        parts: [{
+          text: '你好，请回复"连接测试成功"'
+        }]
+      }]
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+    
+    if (response.status === 200 && response.data.candidates && response.data.candidates[0]) {
+      return {
+        success: true,
+        message: '连接测试成功',
+        model: model,
+        response: response.data.candidates[0].content.parts[0].text
+      };
+    } else {
+      return {
+        success: false,
+        error: '模型响应格式异常'
+      };
+    }
+  } catch (error) {
+    console.error('Gemini连接测试失败:', error.message);
+    
+    if (error.response) {
+      const statusCode = error.response.status;
+      const errorData = error.response.data;
+      
+      if (statusCode === 400) {
+        return {
+          success: false,
+          error: 'API Key 无效或请求格式错误'
+        };
+      } else if (statusCode === 429) {
+        return {
+          success: false,
+          error: 'API 调用频率超限，请稍后重试'
+        };
+      } else {
+        return {
+          success: false,
+          error: `API 错误 (${statusCode}): ${errorData?.error?.message || '未知错误'}`
+        };
+      }
+    } else {
+      return {
+        success: false,
+        error: error.code === 'ECONNABORTED' ? '连接超时，请检查网络' : error.message
+      };
+    }
+  }
+}
 
 // 启动服务器
 app.listen(PORT, () => {
