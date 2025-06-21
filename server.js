@@ -308,7 +308,7 @@ async function callAI(prompt, systemPrompt) {
           'Authorization': `Bearer ${config.apiKey}`,
           'Content-Type': 'application/json'
         },
-        timeout: 120000
+        timeout: 300000  // 增加到5分钟，与Gemini保持一致
       });
       
       return response.data.choices[0].message.content;
@@ -328,7 +328,7 @@ async function callAI(prompt, systemPrompt) {
         headers: {
           'Content-Type': 'application/json'
         },
-        timeout: 120000
+        timeout: 300000  // 增加到5分钟
       });
       
       return response.data.candidates[0].content.parts[0].text;
@@ -486,13 +486,45 @@ app.post('/api/ai-analysis', async (req, res) => {
 
   } catch (error) {
     console.error('AI分析失败:', error.message);
+    
+    let errorMessage = 'AI分析失败: ' + error.message;
+    let suggestions = [];
+    
     if (error.code === 'ECONNABORTED') {
-      res.json({ success: false, error: '分析超时，请稍后重试' });
+      errorMessage = '分析超时，数据量过大导致处理时间过长';
+      suggestions = [
+        '建议缩小时间范围',
+        '尝试分批次分析',
+        '或稍后重试'
+      ];
+    } else if (error.message.includes('socket hang up')) {
+      errorMessage = 'AI服务连接中断，可能是网络问题或服务器负载过高';
+      suggestions = [
+        '检查网络连接',
+        '稍后重试',
+        '如持续出现，请考虑切换AI模型'
+      ];
     } else if (error.response?.status === 429) {
-      res.json({ success: false, error: 'API调用频率过高，请稍后重试' });
-    } else {
-      res.json({ success: false, error: '分析失败: ' + error.message });
+      errorMessage = 'API调用频率过高，请稍后重试';
+      suggestions = [
+        '等待1-2分钟后重试',
+        '避免连续快速请求'
+      ];
+    } else if (error.response?.status === 413) {
+      errorMessage = '请求数据过大，超出API限制';
+      suggestions = [
+        '减少分析的时间范围',
+        '选择消息较少的群聊进行测试'
+      ];
     }
+    
+    res.json({ 
+      success: false, 
+      error: errorMessage,
+      suggestions: suggestions,
+      errorCode: error.code,
+      httpStatus: error.response?.status
+    });
   }
 });
 
@@ -1627,7 +1659,7 @@ app.get('/api/model-settings', (req, res) => {
             apiKey: ''
           },
           gemini: {
-            model: 'gemini-pro',
+            model: 'gemini-2.5-pro',
             apiKey: ''
           }
         }

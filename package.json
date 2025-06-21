@@ -1,7 +1,7 @@
 {
   "name": "chatlog-web",
-  "version": "2.5.0",
-  "description": "聊天记录查询和显示网站",
+  "version": "2.6.0",
+  "description": "基于Node.js的中文聊天记录查询与AI分析系统",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

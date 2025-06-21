@@ -1,12 +1,12 @@
 {
-  "modelProvider": "DeepSeek",
+  "modelProvider": "Gemini",
   "deepseek": {
     "model": "deepseek-reasoner",
     "apiKey": "sk-2b2f6621dce548069879c64b734ff793"
   },
   "gemini": {
-    "model": "gemini-pro",
-    "apiKey": ""
+    "model": "gemini-2.5-pro",
+    "apiKey": "AIzaSyBxZ2fsjm-laE__4ELPZDbRLzzbTPY7ARU"
   },
-  "updatedAt": "2025-06-21T11:06:31.358Z"
+  "updatedAt": "2025-06-21T11:18:25.438Z"
 }

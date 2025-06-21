@@ -281,7 +281,7 @@ class ModelSettings {
                 apiKey: ''
             },
             gemini: {
-                model: 'gemini-pro',
+                model: 'gemini-2.5-pro',
                 apiKey: ''
             }
         };
