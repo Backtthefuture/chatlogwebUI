@@ -968,21 +968,107 @@ app.get('/api/debug-env', (req, res) => {
 
 // 检查Chatlog服务状态
 app.get('/api/status', async (req, res) => {
+  const startTime = Date.now();
+  
   try {
-    const response = await axios.get(`${CHATLOG_API_BASE}/session`, { 
-      timeout: 5000,
-      headers: {
-        'User-Agent': 'chatlog-web'
+    // 增加超时时间和重试机制
+    const maxRetries = 2;
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔍 Chatlog连接检测第${attempt}次尝试...`);
+        
+        const response = await axios.get(`${CHATLOG_API_BASE}/session`, { 
+          timeout: 15000, // 增加到15秒超时
+          headers: {
+            'User-Agent': 'chatlog-web/2.6.0',
+            'Accept': 'application/json',
+            'Connection': 'keep-alive'
+          },
+          // 添加重试配置
+          validateStatus: function (status) {
+            return status >= 200 && status < 500; // 不要对4xx状态码抛出错误
+          }
+        });
+        
+        if (response.status === 200) {
+          console.log(`✅ Chatlog连接测试成功，状态码: ${response.status}`);
+          return res.json({ 
+            status: 'connected', 
+            message: 'Chatlog服务连接正常',
+            responseTime: Date.now() - startTime,
+            attempt: attempt
+          });
+        } else {
+          throw new Error(`HTTP ${response.status}: 服务响应异常`);
+        }
+        
+      } catch (error) {
+        lastError = error;
+        console.log(`❌ Chatlog连接第${attempt}次尝试失败: ${error.message}`);
+        
+        // 如果不是最后一次尝试，等待一段时间后重试
+        if (attempt < maxRetries) {
+          console.log(`⏳ 等待2秒后进行第${attempt + 1}次重试...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
-    });
-    console.log('Chatlog连接测试成功，状态码:', response.status);
-    res.json({ status: 'connected', message: 'Chatlog服务连接正常' });
+    }
+    
+    // 所有重试都失败了
+    throw lastError;
+    
   } catch (error) {
-    console.error('Chatlog连接测试失败:', error.message);
-    console.error('错误详情:', error.response?.status, error.response?.data);
+    console.error('Chatlog连接测试最终失败:', error.message);
+    
+    // 提供更详细的错误信息和解决建议
+    let errorMessage = 'Chatlog服务未连接';
+    let suggestions = [];
+    
+    if (error.code === 'ECONNREFUSED') {
+      errorMessage = 'Chatlog HTTP服务未启动';
+      suggestions = [
+        '请确保Chatlog应用正在运行',
+        '检查端口5030是否被占用',
+        '尝试重启Chatlog服务'
+      ];
+    } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      errorMessage = 'Chatlog服务响应超时';
+      suggestions = [
+        '服务可能正在启动中，请稍后重试',
+        '检查系统资源是否充足',
+        '确认Chatlog服务未出现异常'
+      ];
+    } else if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
+      errorMessage = 'Chatlog服务地址解析失败';
+      suggestions = [
+        '检查网络连接',
+        '确认服务地址配置正确',
+        '尝试使用IP地址代替域名'
+      ];
+    } else if (error.response?.status >= 400) {
+      errorMessage = `Chatlog服务返回错误 (${error.response.status})`;
+      suggestions = [
+        '服务可能正在维护',
+        '检查API接口是否正常',
+        '查看Chatlog服务日志'
+      ];
+    } else {
+      suggestions = [
+        '检查Chatlog HTTP服务是否启动（端口5030）',
+        '确认防火墙未阻止连接',
+        '尝试重启相关服务'
+      ];
+    }
+    
     res.status(503).json({ 
       status: 'disconnected', 
-      message: 'Chatlog服务未连接，请确保Chatlog HTTP服务已启动（端口5030）' 
+      message: errorMessage,
+      details: error.message,
+      suggestions: suggestions,
+      errorCode: error.code,
+      timestamp: new Date().toISOString()
     });
   }
 });

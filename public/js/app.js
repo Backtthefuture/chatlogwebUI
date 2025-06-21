@@ -1,9 +1,20 @@
 class ChatlogApp {
     constructor() {
         this.currentPage = 1;
-        this.pageSize = 50;
-        this.currentData = [];
-        this.selectedTalker = '';
+        this.pageSize = 100;
+        this.totalMessages = 0;
+        this.apiInProgress = false;
+        this.aiAnalysisInProgress = false;
+        this.analysisHistory = [];
+        this.currentBatchAnalysis = null;
+        
+        // 连接检测相关配置
+        this.connectionCheckInterval = null;
+        this.connectionRetryCount = 0;
+        this.maxRetryCount = 3;
+        this.retryDelay = 2000; // 重试延迟2秒
+        this.autoCheckInterval = 30000; // 自动检测间隔30秒
+        this.isConnecting = false;
         
         // 批量分析状态管理
         this.batchAnalysisState = {
@@ -31,11 +42,30 @@ class ChatlogApp {
 
     init() {
         this.bindEvents();
-        this.checkStatus();
         this.initDatePickers();
         this.loadAnalysisHistory();
         this.initDynamicAnalysisItems();
-        this.loadScheduledStatus();
+        
+        // 页面加载完成后检查连接状态
+        setTimeout(() => {
+            this.checkStatus(true); // 显示初始检测结果
+        }, 500);
+        
+        // 页面卸载时停止自动检测
+        window.addEventListener('beforeunload', () => {
+            this.stopAutoConnectionCheck();
+        });
+        
+        // 页面可见性变化时的处理
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                // 页面变为可见时，立即检测连接状态
+                this.checkStatus();
+            } else {
+                // 页面隐藏时，停止自动检测以节省资源
+                this.stopAutoConnectionCheck();
+            }
+        });
     }
 
     // 绑定事件监听器
@@ -218,16 +248,112 @@ class ChatlogApp {
         }
     }
 
-    // 检查服务状态
-    async checkStatus() {
+    // 检查服务状态（带重试机制）
+    async checkStatus(showMessage = false, isRetry = false) {
+        if (this.isConnecting && !isRetry) {
+            return; // 避免重复检测
+        }
+        
         try {
-            const response = await fetch('/api/status');
+            this.isConnecting = true;
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000); // 增加到20秒超时，给后端足够时间重试
+            
+            const response = await fetch('/api/status', {
+                signal: controller.signal,
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
             const data = await response.json();
             
-            this.updateConnectionStatus(data.status === 'connected');
+            if (data.status === 'connected') {
+                this.updateConnectionStatus(true);
+                this.connectionRetryCount = 0; // 成功后重置重试计数
+                
+                if (showMessage) {
+                    let message = '连接状态检测成功';
+                    if (data.responseTime) {
+                        message += ` (响应时间: ${data.responseTime}ms)`;
+                    }
+                    if (data.attempt > 1) {
+                        message += ` [重试${data.attempt}次成功]`;
+                    }
+                    this.showMessage(message, 'success');
+                }
+                
+                // 启动自动检测
+                this.startAutoConnectionCheck();
+            } else {
+                // 服务器返回了连接失败的详细信息
+                this.updateConnectionStatus(false);
+                
+                if (showMessage && data.message) {
+                    let errorDetails = data.message;
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        errorDetails += '\n\n建议解决方案:\n' + data.suggestions.map(s => `• ${s}`).join('\n');
+                    }
+                    this.showMessage(errorDetails, 'error');
+                }
+                
+                // 自动重试机制
+                if (this.connectionRetryCount < this.maxRetryCount) {
+                    this.connectionRetryCount++;
+                    console.log(`连接失败，${this.retryDelay/1000}秒后进行第${this.connectionRetryCount}次重试...`);
+                    
+                    setTimeout(() => {
+                        this.checkStatus(false, true);
+                    }, this.retryDelay);
+                    
+                    if (showMessage) {
+                        this.showMessage(`${data.message}，正在重试 (${this.connectionRetryCount}/${this.maxRetryCount})`, 'warning');
+                    }
+                } else {
+                    this.connectionRetryCount = 0;
+                }
+            }
+            
         } catch (error) {
             console.error('检查状态失败:', error);
+            
             this.updateConnectionStatus(false);
+            
+            // 处理不同类型的错误
+            let errorMessage = '连接检测失败';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Chatlog服务响应超时 (20秒)';
+            } else if (error.message.includes('Failed to fetch')) {
+                errorMessage = '网络连接失败或Web服务器未启动';
+            } else {
+                errorMessage = `连接失败: ${error.message}`;
+            }
+            
+            // 自动重试机制
+            if (this.connectionRetryCount < this.maxRetryCount) {
+                this.connectionRetryCount++;
+                console.log(`连接失败，${this.retryDelay/1000}秒后进行第${this.connectionRetryCount}次重试...`);
+                
+                setTimeout(() => {
+                    this.checkStatus(false, true);
+                }, this.retryDelay);
+                
+                if (showMessage) {
+                    this.showMessage(`${errorMessage}，正在重试 (${this.connectionRetryCount}/${this.maxRetryCount})`, 'warning');
+                }
+            } else {
+                // 重试次数耗尽
+                this.connectionRetryCount = 0;
+                if (showMessage) {
+                    this.showMessage(`${errorMessage}，请检查相关服务是否正常运行`, 'error');
+                }
+            }
+        } finally {
+            this.isConnecting = false;
         }
     }
 
@@ -238,36 +364,64 @@ class ChatlogApp {
         const statusText = statusIndicator.querySelector('.status-text');
         const refreshBtn = document.getElementById('refreshBtn');
         
+        // 移除所有状态类
+        statusDot.classList.remove('connected', 'disconnected', 'connecting');
+        statusIndicator.classList.remove('just-connected');
+        refreshBtn.classList.remove('disconnected', 'connecting');
+        statusText.classList.remove('retry-info');
+        
         if (isConnected) {
-            statusDot.className = 'status-dot connected';
+            statusDot.classList.add('connected');
             statusText.textContent = '已连接 Chatlog 服务';
-            refreshBtn.classList.remove('disconnected');
+            
+            // 连接成功时的闪烁效果
+            statusIndicator.classList.add('just-connected');
+            setTimeout(() => {
+                statusIndicator.classList.remove('just-connected');
+            }, 1000);
+            
+            // 更新按钮状态
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> 刷新连接';
         } else {
-            statusDot.className = 'status-dot disconnected';
+            statusDot.classList.add('disconnected');
             statusText.textContent = 'Chatlog 服务未连接';
             refreshBtn.classList.add('disconnected');
+            
+            // 连接失败时，显示重试状态
+            if (this.connectionRetryCount > 0 && this.connectionRetryCount <= this.maxRetryCount) {
+                statusDot.classList.remove('disconnected');
+                statusDot.classList.add('connecting');
+                statusText.textContent = `正在重连... (${this.connectionRetryCount}/${this.maxRetryCount})`;
+                statusText.classList.add('retry-info');
+                refreshBtn.classList.remove('disconnected');
+                refreshBtn.classList.add('connecting');
+            }
         }
     }
 
-    // 刷新连接状态
+    // 刷新连接状态（改进版）
     async refreshConnection() {
         const refreshBtn = document.getElementById('refreshBtn');
         const originalText = refreshBtn.innerHTML;
+        
+        // 重置重试计数
+        this.connectionRetryCount = 0;
         
         // 显示刷新中状态
         refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 连接中...';
         refreshBtn.disabled = true;
         
         try {
-            await this.checkStatus();
-            this.showMessage('连接状态已刷新', 'success');
+            await this.checkStatus(true); // 显示检测结果消息
         } catch (error) {
             console.error('刷新连接失败:', error);
             this.showMessage('刷新连接失败', 'error');
         } finally {
             // 恢复按钮状态
-            refreshBtn.innerHTML = originalText;
-            refreshBtn.disabled = false;
+            setTimeout(() => {
+                refreshBtn.innerHTML = originalText;
+                refreshBtn.disabled = false;
+            }, 1000); // 延迟1秒恢复，避免按钮状态变化太快
         }
     }
 
@@ -2352,6 +2506,30 @@ class ChatlogApp {
         this.validateCronExpression();
         
         this.showMessage('配置已重置为默认值', 'info');
+    }
+
+    // 启动自动连接检测
+    startAutoConnectionCheck() {
+        // 清除现有的定时器
+        if (this.connectionCheckInterval) {
+            clearInterval(this.connectionCheckInterval);
+        }
+        
+        // 设置新的定时器
+        this.connectionCheckInterval = setInterval(() => {
+            this.checkStatus(); // 静默检测，不显示消息
+        }, this.autoCheckInterval);
+        
+        console.log(`🔄 自动连接检测已启动，间隔: ${this.autoCheckInterval/1000}秒`);
+    }
+    
+    // 停止自动连接检测
+    stopAutoConnectionCheck() {
+        if (this.connectionCheckInterval) {
+            clearInterval(this.connectionCheckInterval);
+            this.connectionCheckInterval = null;
+            console.log('⏹️ 自动连接检测已停止');
+        }
     }
 }
 
