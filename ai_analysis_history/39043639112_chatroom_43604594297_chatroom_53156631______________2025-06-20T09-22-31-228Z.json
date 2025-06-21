@@ -1,0 +1,13 @@
+{
+  "groupName": "39043639112@chatroom,43604594297@chatroom,53156631176@chatroom,57699799992@chatroom,56018095356@chatroom,17281868060@chatroom,20318261581@chatroom,39106159476@chatroom,52806040084@chatroom,53432638955@chatroom,39295145063@chatroom,43233236454@chatroom,43279515605@chatroom,47467058301@chatroom,43911988541@chatroom,58033691916@chatroom",
+  "analysisType": "multi-chat",
+  "timeRange": "yesterday",
+  "messageCount": 0,
+  "timestamp": "2025-06-20T09:22:31.227Z",
+  "title": "多群聊分析 - 分析失败",
+  "isMultiChat": true,
+  "content": null,
+  "status": "error",
+  "error": "Error: socket hang up",
+  "savedAt": "2025-06-20T09:22:31.228Z"
+}

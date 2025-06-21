@@ -146,7 +146,7 @@ class ModelSettings {
         // 获取当前配置
         const config = this.getCurrentFormData();
         
-        if (!config[provider.toLowerCase()].apiKey.trim()) {
+        if (!config[provider.toLowerCase()]?.apiKey?.trim()) {
             this.showTestResult('error', '请先填写 API Key');
             return;
         }

@@ -1647,10 +1647,31 @@ app.post('/api/model-settings/test', async (req, res) => {
   try {
     const { provider, config } = req.body;
     
-    if (!provider || !config || !config.apiKey || !config.model) {
+    if (!provider) {
       return res.status(400).json({
         success: false,
-        error: '请提供完整的测试配置'
+        error: '请选择模型提供商'
+      });
+    }
+    
+    if (!config) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供模型配置'
+      });
+    }
+    
+    if (!config.apiKey || config.apiKey.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'API Key 不能为空'
+      });
+    }
+    
+    if (!config.model) {
+      return res.status(400).json({
+        success: false,
+        error: '请选择模型'
       });
     }
     
