@@ -13,7 +13,7 @@ class ChatlogApp {
         this.connectionRetryCount = 0;
         this.maxRetryCount = 3;
         this.retryDelay = 2000; // 重试延迟2秒
-        this.autoCheckInterval = 30000; // 自动检测间隔30秒
+        this.autoCheckInterval = 60000; // 自动检测间隔60秒（减少频率）
         this.isConnecting = false;
         
         // 批量分析状态管理
@@ -46,9 +46,10 @@ class ChatlogApp {
         this.loadAnalysisHistory();
         this.initDynamicAnalysisItems();
         
-        // 页面加载完成后检查连接状态
+        // 页面加载完成后检查连接状态和定时任务状态
         setTimeout(() => {
             this.checkStatus(true); // 显示初始检测结果
+            this.loadScheduledStatus(); // 加载定时任务状态
         }, 500);
         
         // 页面卸载时停止自动检测
@@ -187,6 +188,22 @@ class ChatlogApp {
         
         document.getElementById('closeScheduledConfig').addEventListener('click', () => {
             this.closeScheduledConfig();
+        });
+        
+        // 分析项信息图标点击事件
+        document.getElementById('scheduledItemsInfo').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleItemsTooltip();
+        });
+        
+        // 点击其他地方关闭工具提示
+        document.addEventListener('click', (e) => {
+            const tooltip = document.getElementById('itemsTooltip');
+            const infoIcon = document.getElementById('scheduledItemsInfo');
+            
+            if (!tooltip.contains(e.target) && e.target !== infoIcon) {
+                this.hideItemsTooltip();
+            }
         });
     }
 
@@ -1832,18 +1849,23 @@ class ChatlogApp {
     
     // 加载定时任务状态
     async loadScheduledStatus() {
+        console.log('🔍 开始加载定时任务状态...');
         try {
             const response = await fetch('/api/scheduled-analysis-status');
+            console.log('📡 API响应状态:', response.status);
+            
             const data = await response.json();
+            console.log('📊 API响应数据:', data);
             
             if (data.success) {
+                console.log('✅ 定时任务状态加载成功');
                 this.displayScheduledStatus(data);
             } else {
-                console.error('获取定时任务状态失败:', data.error);
+                console.error('❌ 获取定时任务状态失败:', data.error);
                 this.showScheduledError('获取定时任务状态失败');
             }
         } catch (error) {
-            console.error('加载定时任务状态失败:', error);
+            console.error('❌ 加载定时任务状态失败:', error);
             this.showScheduledError('加载定时任务状态失败');
         }
     }
@@ -2530,6 +2552,31 @@ class ChatlogApp {
             this.connectionCheckInterval = null;
             console.log('⏹️ 自动连接检测已停止');
         }
+    }
+    
+    // ============ 工具提示管理 ============
+    
+    // 切换分析项工具提示显示状态
+    toggleItemsTooltip() {
+        const tooltip = document.getElementById('itemsTooltip');
+        
+        if (tooltip.classList.contains('show')) {
+            this.hideItemsTooltip();
+        } else {
+            this.showItemsTooltip();
+        }
+    }
+    
+    // 显示分析项工具提示
+    showItemsTooltip() {
+        const tooltip = document.getElementById('itemsTooltip');
+        tooltip.classList.add('show');
+    }
+    
+    // 隐藏分析项工具提示
+    hideItemsTooltip() {
+        const tooltip = document.getElementById('itemsTooltip');
+        tooltip.classList.remove('show');
     }
 }
 
