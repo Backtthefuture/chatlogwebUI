@@ -276,9 +276,16 @@ async function getChatData(talker, timeRange = '2024-01-01~2025-12-31') {
 }
 
 // 通用AI调用函数
-async function callAI(prompt, systemPrompt) {
+async function callAI(prompt, systemPrompt, retryCount = 0) {
+  const maxRetries = 3;
+  const baseDelay = 5000; // 5秒基础延迟
+  
   try {
+    console.log(`🤖 AI调用 (第${retryCount + 1}次尝试)`);
     console.log('发送到AI的提示词长度:', prompt.length);
+    
+    // 不进行数据删减，保持完整性
+    console.log('📊 提示词长度:', prompt.length, '字符');
     
     // 读取模型设置
     const modelConfig = await getModelConfig();
@@ -286,6 +293,13 @@ async function callAI(prompt, systemPrompt) {
     const config = modelConfig.config;
 
     let response;
+    let timeoutDuration = 300000; // 5分钟基础超时
+
+    // 根据提示词长度动态调整超时时间
+    if (prompt.length > 50000) {
+      timeoutDuration = 600000; // 10分钟
+      console.log('📏 检测到大数据量，超时时间调整为10分钟');
+    }
 
     if (provider === 'DeepSeek') {
       response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
@@ -308,27 +322,73 @@ async function callAI(prompt, systemPrompt) {
           'Authorization': `Bearer ${config.apiKey}`,
           'Content-Type': 'application/json'
         },
-        timeout: 300000  // 增加到5分钟，与Gemini保持一致
+        timeout: timeoutDuration,
+        // 添加连接配置优化
+        httpAgent: new (require('http').Agent)({ 
+          keepAlive: true,
+          maxSockets: 1,
+          timeout: timeoutDuration
+        }),
+        httpsAgent: new (require('https').Agent)({ 
+          keepAlive: true,
+          maxSockets: 1,
+          timeout: timeoutDuration
+        })
       });
       
       return response.data.choices[0].message.content;
       
     } else if (provider === 'Gemini') {
+      // Gemini特殊处理：分段发送大数据
+      let finalPrompt = `${systemPrompt}\n\n${prompt}`;
+      
+      // 保持数据完整性，不进行分段处理
+      console.log('📊 Gemini处理完整数据，长度:', finalPrompt.length, '字符');
+      
       response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.apiKey}`, {
         contents: [{
           parts: [{
-            text: `${systemPrompt}\n\n${prompt}`
+            text: finalPrompt
           }]
         }],
         generationConfig: {
           temperature: 1.0,
           maxOutputTokens: 32768
-        }
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH", 
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_NONE"
+          }
+        ]
       }, {
         headers: {
           'Content-Type': 'application/json'
         },
-        timeout: 300000  // 增加到5分钟
+        timeout: timeoutDuration,
+        // 添加连接配置优化
+        httpAgent: new (require('http').Agent)({ 
+          keepAlive: true,
+          maxSockets: 1,
+          timeout: timeoutDuration
+        }),
+        httpsAgent: new (require('https').Agent)({ 
+          keepAlive: true,
+          maxSockets: 1,
+          timeout: timeoutDuration
+        })
       });
       
       return response.data.candidates[0].content.parts[0].text;
@@ -337,18 +397,130 @@ async function callAI(prompt, systemPrompt) {
     throw new Error('不支持的AI提供商');
     
   } catch (error) {
-    console.error('AI API调用失败:', error.message);
+    console.error(`❌ AI API调用失败 (第${retryCount + 1}次):`, error.message);
+    
+    // 判断是否需要重试
+    const shouldRetry = retryCount < maxRetries && (
+      error.code === 'ECONNABORTED' ||
+      error.message.includes('socket hang up') ||
+      error.message.includes('ECONNRESET') ||
+      error.message.includes('ETIMEDOUT') ||
+      (error.response?.status >= 500 && error.response?.status < 600) ||
+      error.response?.status === 429
+    );
+    
+    if (shouldRetry) {
+      const delay = baseDelay * Math.pow(2, retryCount); // 指数退避
+      console.log(`⏳ ${delay/1000}秒后进行第${retryCount + 2}次重试...`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return await callAI(prompt, systemPrompt, retryCount + 1);
+    }
+    
+    // 记录详细错误信息
     if (error.response) {
       console.error('API错误响应:', error.response.status, error.response.data);
     }
+    
     throw error;
   }
 }
+
+// 数据完整性优先：不进行任何内容删减或采样
+// 所有聊天数据将完整保留，确保分析结果的准确性
 
 // 向后兼容的DeepSeek API调用函数
 async function callDeepSeekAPI(prompt, systemPrompt) {
   return await callAI(prompt, systemPrompt);
 }
+
+// AI模型负载检测和推荐
+async function checkAIModelHealth() {
+  const results = {
+    deepseek: { available: false, responseTime: null, error: null },
+    gemini: { available: false, responseTime: null, error: null }
+  };
+  
+  // 测试DeepSeek
+  try {
+    const startTime = Date.now();
+    await axios.post('https://api.deepseek.com/v1/chat/completions', {
+      model: 'deepseek-chat',
+      messages: [{ role: 'user', content: 'test' }],
+      max_tokens: 1
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+    results.deepseek.available = true;
+    results.deepseek.responseTime = Date.now() - startTime;
+  } catch (error) {
+    results.deepseek.error = error.message;
+  }
+  
+  // 测试Gemini
+  try {
+    const startTime = Date.now();
+    await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      contents: [{ parts: [{ text: 'test' }] }],
+      generationConfig: { maxOutputTokens: 1 }
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000
+    });
+    results.gemini.available = true;
+    results.gemini.responseTime = Date.now() - startTime;
+  } catch (error) {
+    results.gemini.error = error.message;
+  }
+  
+  return results;
+}
+
+// AI模型推荐接口
+app.get('/api/ai-model-recommendation', async (req, res) => {
+  try {
+    const health = await checkAIModelHealth();
+    
+    let recommendation = {
+      recommended: 'deepseek', // 默认推荐
+      reason: '默认推荐',
+      details: health
+    };
+    
+    // 基于响应时间和可用性推荐
+    if (health.deepseek.available && health.gemini.available) {
+      if (health.deepseek.responseTime < health.gemini.responseTime) {
+        recommendation.recommended = 'deepseek';
+        recommendation.reason = `DeepSeek响应更快 (${health.deepseek.responseTime}ms vs ${health.gemini.responseTime}ms)`;
+      } else {
+        recommendation.recommended = 'gemini';
+        recommendation.reason = `Gemini响应更快 (${health.gemini.responseTime}ms vs ${health.deepseek.responseTime}ms)`;
+      }
+    } else if (health.deepseek.available) {
+      recommendation.recommended = 'deepseek';
+      recommendation.reason = 'Gemini当前不可用';
+    } else if (health.gemini.available) {
+      recommendation.recommended = 'gemini';
+      recommendation.reason = 'DeepSeek当前不可用';
+    } else {
+      recommendation.recommended = null;
+      recommendation.reason = '所有AI模型当前都不可用';
+    }
+    
+    res.json({ success: true, recommendation });
+  } catch (error) {
+    console.error('AI模型健康检查失败:', error);
+    res.json({ 
+      success: false, 
+      error: '无法检查AI模型状态',
+      recommendation: { recommended: 'deepseek', reason: '默认推荐' }
+    });
+  }
+});
 
 // 获取当前模型配置
 async function getModelConfig() {
@@ -498,11 +670,13 @@ app.post('/api/ai-analysis', async (req, res) => {
         '或稍后重试'
       ];
     } else if (error.message.includes('socket hang up')) {
-      errorMessage = 'AI服务连接中断，可能是网络问题或服务器负载过高';
+      errorMessage = 'AI服务连接中断，通常是由于服务器负载过高';
       suggestions = [
-        '检查网络连接',
-        '稍后重试',
-        '如持续出现，请考虑切换AI模型'
+        '🔄 系统已自动重试3次，建议稍等1-2分钟后再试',
+        '🔀 建议切换到DeepSeek模型（通常更稳定且支持更大数据量）',
+        '⏰ 避开高峰时段（如晚上8-10点）进行分析',
+        '📱 检查网络连接是否稳定',
+        '🎯 DeepSeek模型对大数据量分析更加稳定可靠'
       ];
     } else if (error.response?.status === 429) {
       errorMessage = 'API调用频率过高，请稍后重试';
@@ -979,9 +1153,9 @@ app.get('/api/status', async (req, res) => {
       try {
         console.log(`🔍 Chatlog连接检测第${attempt}次尝试...`);
         
-        const response = await axios.get(`${CHATLOG_API_BASE}/session`, { 
+    const response = await axios.get(`${CHATLOG_API_BASE}/session`, { 
           timeout: 15000, // 增加到15秒超时
-          headers: {
+      headers: {
             'User-Agent': 'chatlog-web/2.6.0',
             'Accept': 'application/json',
             'Connection': 'keep-alive'
@@ -989,8 +1163,8 @@ app.get('/api/status', async (req, res) => {
           // 添加重试配置
           validateStatus: function (status) {
             return status >= 200 && status < 500; // 不要对4xx状态码抛出错误
-          }
-        });
+      }
+    });
         
         if (response.status === 200) {
           console.log(`✅ Chatlog连接测试成功，状态码: ${response.status}`);
@@ -1004,7 +1178,7 @@ app.get('/api/status', async (req, res) => {
           throw new Error(`HTTP ${response.status}: 服务响应异常`);
         }
         
-      } catch (error) {
+  } catch (error) {
         lastError = error;
         console.log(`❌ Chatlog连接第${attempt}次尝试失败: ${error.message}`);
         
@@ -1720,20 +1894,20 @@ app.get('/api/model-settings', (req, res) => {
       // 出于安全考虑，不返回完整的API Key
       const safeSettings = {
         ...settings,
-        deepseek: {
+      deepseek: {
           ...settings.deepseek,
           apiKey: settings.deepseek.apiKey ? settings.deepseek.apiKey.substring(0, 8) + '...' : ''
         },
         gemini: {
           ...settings.gemini,
           apiKey: settings.gemini.apiKey ? settings.gemini.apiKey.substring(0, 8) + '...' : ''
-        }
-      };
-      
-      res.json({
-        success: true,
+      }
+    };
+    
+    res.json({
+      success: true,
         settings: safeSettings
-      });
+    });
     } else {
       // 返回默认设置
       res.json({
@@ -1931,10 +2105,10 @@ async function testGeminiConnection(apiKey, model) {
         };
       } else {
         return {
-          success: false,
+      success: false,
           error: `API 错误 (${statusCode}): ${errorData?.error?.message || '未知错误'}`
         };
-      }
+  }
     } else {
       return {
         success: false,

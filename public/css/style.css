@@ -2357,18 +2357,18 @@ body {
     }
     70% { 
         box-shadow: 0 0 0 10px rgba(255, 69, 58, 0);
-    }
+}
     100% { 
         background: #FF453A;
         box-shadow: 0 0 0 0 rgba(255, 69, 58, 0);
-    }
+}
 }
 
 @keyframes pulse-connecting {
     0% { 
         background: #FF9F0A;
         box-shadow: 0 0 0 0 rgba(255, 159, 10, 0.4);
-    }
+}
     50% { 
         background: #FFCC02;
         box-shadow: 0 0 0 8px rgba(255, 159, 10, 0.1);
@@ -2376,7 +2376,7 @@ body {
     100% { 
         background: #FF9F0A;
         box-shadow: 0 0 0 0 rgba(255, 159, 10, 0);
-    }
+}
 }
 
 /* 刷新连接按钮连接中状态 */
@@ -2396,7 +2396,7 @@ body {
     }
     100% { 
         box-shadow: 0 0 0 0 rgba(255, 159, 10, 0);
-    }
+}
 }
 
 /* 连接成功的闪烁效果 */
@@ -2408,7 +2408,7 @@ body {
     0% { 
         background: rgba(52, 199, 89, 0.2);
         border-color: rgba(52, 199, 89, 0.4);
-    }
+}
     50% { 
         background: rgba(52, 199, 89, 0.1);
         border-color: rgba(52, 199, 89, 0.2);
@@ -2416,7 +2416,7 @@ body {
     100% { 
         background: rgba(255, 255, 255, 0.1);
         border-color: rgba(255, 255, 255, 0.1);
-    }
+}
 }
 
 /* 消息和提示样式 - 苹果风格 */
@@ -2889,4 +2889,302 @@ body {
     background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 图片预览模态框样式 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.modal .close {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #ff4757;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1;
+    transition: all 0.2s ease;
+    z-index: 10000;
+}
+
+.modal .close:hover {
+    background: #ff3838;
+    transform: scale(1.1);
+}
+
+/* 聊天记录中的图片样式 */
+.message-image {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    object-fit: cover;
+}
+
+.message-image:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 加载覆盖层样式 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-spinner {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    animation: fadeInScale 0.3s ease;
+}
+
+.loading-spinner i {
+    color: #3b82f6;
+    margin-bottom: 1rem;
+}
+
+.loading-spinner p {
+    color: #6b7280;
+    margin: 0;
+    font-size: 1rem;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* AI模型推荐提示样式 */
+.model-recommendation-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    color: white;
+    z-index: 10000;
+    min-width: 350px;
+    max-width: 450px;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+.model-recommendation-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-content {
+    padding: 0;
+}
+
+.toast-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.toast-header i {
+    margin-right: 8px;
+    color: #ffd700;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.toast-close:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.toast-body {
+    padding: 20px;
+}
+
+.toast-body p {
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+}
+
+.toast-body .reason {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 16px;
+}
+
+.model-status {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 16px 0;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.status-item:last-child {
+    margin-bottom: 0;
+}
+
+.model-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.status {
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.status.available {
+    background: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+}
+
+.status.unavailable {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+.toast-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.btn-switch, .btn-dismiss {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.btn-switch {
+    background: #22c55e;
+    color: white;
+}
+
+.btn-switch:hover {
+    background: #16a34a;
+    transform: translateY(-1px);
+}
+
+.btn-dismiss {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-dismiss:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .model-recommendation-toast {
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+    }
+    
+    .toast-actions {
+        flex-direction: column;
+    }
+    
+    .btn-switch, .btn-dismiss {
+        flex: none;
+    }
 }

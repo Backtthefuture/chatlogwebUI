@@ -1,0 +1,52 @@
+# 聊天记录查询与AI分析系统 - 环境配置模板
+# 将此文件重命名为 .env 并根据实际情况修改配置
+
+# ===========================================
+# 基础服务配置
+# ===========================================
+
+# 服务运行端口
+PORT=3000
+
+# ===========================================
+# AI模型配置
+# ===========================================
+
+# AI提供商选择: DeepSeek 或 Gemini
+MODEL_PROVIDER=DeepSeek
+
+# DeepSeek配置
+DEEPSEEK_API_KEY=
+DEEPSEEK_MODEL=deepseek-chat
+
+# Gemini配置  
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-pro
+
+# ===========================================
+# 定时任务配置
+# ===========================================
+
+# 是否启用定时分析任务
+ENABLE_SCHEDULED_ANALYSIS=false
+
+# 定时任务执行时间 (Cron表达式格式)
+# 默认：每天早上8点执行 (0 0 8 * * *)
+SCHEDULED_ANALYSIS_TIME=0 0 8 * * *
+
+# ===========================================
+# 注意事项
+# ===========================================
+
+# 1. API Key获取方式：
+#    - DeepSeek: https://www.deepseek.com/
+#    - Gemini: https://aistudio.google.com/
+#
+# 2. 模型选择建议：
+#    - DeepSeek: deepseek-chat (推荐) 或 deepseek-reasoner
+#    - Gemini: gemini-2.5-pro (推荐) 或 gemini-pro
+#
+# 3. 安全提醒：
+#    - 请勿将包含真实API Key的.env文件提交到代码仓库
+#    - 定期更换API Key以确保安全
+#    - 使用时请确保网络环境可以访问对应的AI服务 

@@ -1,226 +1,151 @@
-<div align="center">
+# 聊天记录查询与AI分析系统
 
-# Chatlog
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.7.0-orange.svg)](项目说明.md)
 
-![chatlog](https://socialify.git.ci/sjzar/chatlog/image?font=Rokkitt&forks=1&issues=1&name=1&pattern=Diagonal+Stripes&stargazers=1&theme=Auto)
+> 一个基于Node.js和Express的中文聊天记录查询与AI智能分析系统，提供便捷的聊天数据检索、可视化分析和AI驱动的深度洞察功能。
 
-_聊天记录工具，帮助大家轻松使用自己的聊天数据_
+## ✨ 特性
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/sjzar/chatlog)](https://goreportcard.com/report/github.com/sjzar/chatlog)
-[![GoDoc](https://godoc.org/github.com/sjzar/chatlog?status.svg)](https://godoc.org/github.com/sjzar/chatlog)
-[![GitHub release](https://img.shields.io/github/release/sjzar/chatlog.svg)](https://github.com/sjzar/chatlog/releases)
-[![GitHub license](https://img.shields.io/github/license/sjzar/chatlog.svg)](https://github.com/sjzar/chatlog/blob/main/LICENSE)
+🔍 **智能查询** - 多维度聊天记录搜索，支持时间、联系人、关键词等条件筛选
 
-</div>
+🤖 **AI分析** - 集成DeepSeek和Gemini模型，提供智能内容分析和洞察
 
-![chatlog](https://github.com/user-attachments/assets/e085d3a2-e009-4463-b2fd-8bd7df2b50c3)
+📊 **数据可视化** - 丰富的图表展示和统计分析功能
 
-## Feature
+⏰ **定时任务** - 支持定时自动分析，生成周期性报告
 
-- 从本地数据库文件获取聊天数据
-- 支持 Windows / macOS 系统
-- 支持微信 3.x / 4.0 版本
-- 提供 Terminal UI 界面 & 命令行工具
-- 提供 HTTP API 服务，支持查询聊天记录、联系人、群聊、最近会话等信息
-- 支持 MCP SSE 协议，可与支持 MCP 的 AI 助手无缝集成
-- 支持多媒体消息，支持解密图片、语音
-- 支持自动解密数据，简化使用流程
-- 支持多账号管理，可在不同账号间切换
+🎨 **现代界面** - 响应式设计，优雅的用户体验
 
+## 🚀 快速开始
 
-## TODO
-
-- 聊天数据全文索引
-- 聊天数据统计 & Dashboard
-
-## Quick Start
-
-### 基本步骤
-
-1. **安装 Chatlog**：[下载预编译版本](#下载预编译版本) 或 [使用 Go 安装](#从源码安装)
-2. **运行程序**：执行 `chatlog` 启动 Terminal UI 界面
-3. **解密数据**：选择 `解密数据` 菜单项
-4. **开启 HTTP 服务**：选择 `开启 HTTP 服务` 菜单项
-5. **访问数据**：通过 [HTTP API](#http-api) 或 [MCP 集成](#mcp-集成) 访问聊天记录
-
-> 💡 **提示**：如果电脑端微信聊天记录不全，可以[从手机端迁移数据](#从手机迁移聊天记录)
-
-### 常见问题快速解决
-
-- **macOS 用户**：获取密钥前需[临时关闭 SIP](#macos-版本说明)
-- **Windows 用户**：遇到界面显示问题请[使用 Windows Terminal](#windows-版本说明)
-- **集成 AI 助手**：查看 [MCP 集成指南](#mcp-集成)
-
-## 安装指南
-
-### 从源码安装
-
+### 1. 克隆项目
 ```bash
-go install github.com/sjzar/chatlog@latest
+git clone https://github.com/your-username/chatlog-analysis-system.git
+cd chatlog-analysis-system
 ```
 
-### 下载预编译版本
-
-访问 [Releases](https://github.com/sjzar/chatlog/releases) 页面下载适合您系统的预编译版本。
-
-## 使用指南
-
-### Terminal UI 模式
-
-最简单的使用方式是通过 Terminal UI 界面操作：
-
+### 2. 安装依赖
 ```bash
-chatlog
+npm install
 ```
 
-操作方法：
-- 使用 `↑` `↓` 键选择菜单项
-- 按 `Enter` 确认选择
-- 按 `Esc` 返回上级菜单
-- 按 `Ctrl+C` 退出程序
-
-### 命令行模式
-
-对于熟悉命令行的用户，可以直接使用以下命令：
-
+### 3. 配置环境
 ```bash
-# 获取微信数据密钥
-chatlog key
-
-# 解密数据库文件
-chatlog decrypt
-
-# 启动 HTTP 服务
-chatlog server
+# 复制环境配置模板
+cp 环境配置模板.txt .env
+# 然后编辑 .env 文件，填入你的API Key
 ```
 
-### 从手机迁移聊天记录
+### 4. 启动服务
+```bash
+npm start
+```
 
-如果电脑端微信聊天记录不全，可以从手机端迁移数据：
+### 5. 访问系统
+打开浏览器访问：http://localhost:3000
 
-1. 打开手机微信，进入 `我 - 设置 - 通用 - 聊天记录迁移与备份`
-2. 选择 `迁移 - 迁移到电脑`，按照提示操作
-3. 完成迁移后，重新运行 `chatlog` 获取密钥并解密数据
+## 📖 详细文档
 
-> 此操作不会影响手机上的聊天记录，只是将数据复制到电脑端
+- 📋 **[启动说明](启动说明.md)** - 详细的安装配置和使用指南
+- 📚 **[项目说明](项目说明.md)** - 完整的功能介绍和技术文档
+- ⚙️ **[环境配置模板](环境配置模板.txt)** - 环境变量配置参考
 
-## 平台特定说明
-
-### Windows 版本说明
-
-如遇到界面显示异常（如花屏、乱码等），请使用 [Windows Terminal](https://github.com/microsoft/terminal) 运行程序
-
-### macOS 版本说明
-
-macOS 用户在获取密钥前需要临时关闭 SIP（系统完整性保护）：
-
-1. **关闭 SIP**：
-   ```shell
-   # 进入恢复模式
-   # Intel Mac: 重启时按住 Command + R
-   # Apple Silicon: 重启时长按电源键
-   
-   # 在恢复模式中打开终端并执行
-   csrutil disable
-   
-   # 重启系统
-   ```
-
-2. **安装必要工具**：
-   ```shell
-   # 安装 Xcode Command Line Tools
-   xcode-select --install
-   ```
-
-3. **获取密钥后**：可以重新启用 SIP（`csrutil enable`），不影响后续使用
-
-> Apple Silicon 用户注意：确保微信、chatlog 和终端都不在 Rosetta 模式下运行
-
-## HTTP API
-
-启动 HTTP 服务后（默认地址 `http://127.0.0.1:5030`），可通过以下 API 访问数据：
+## 🎯 主要功能
 
 ### 聊天记录查询
+- 按时间范围、联系人、群聊筛选
+- 关键词搜索和内容匹配
+- 支持大数据量查询（无限制选项）
 
+### AI智能分析
+- **预设模板**：编程技术、科学学习、阅读讨论分析
+- **自定义分析**：支持自定义提示词
+- **批量分析**：一键分析多个群聊
+- **多模型支持**：DeepSeek、Gemini模型任选
+
+### 可视化报告
+- 生成HTML分析报告
+- 统计图表和趋势分析
+- 关键词云和活跃度分析
+
+## 🔧 系统要求
+
+- **Node.js**: 18.0.0+
+- **npm**: 8.0.0+
+- **系统**: Windows / macOS / Linux
+- **网络**: 需要访问AI服务API
+
+## 🤖 支持的AI模型
+
+### DeepSeek（推荐）
+- `deepseek-chat` - 通用对话模型
+- `deepseek-reasoner` - 推理增强模型
+
+### Google Gemini
+- `gemini-2.5-pro` - 最新Pro模型（推荐）
+- `gemini-pro` - 标准Pro模型
+- `gemini-pro-vision` - 多模态模型
+
+## 🛠️ 开发
+
+### 项目结构
 ```
-GET /api/v1/chatlog?time=2023-01-01&talker=wxid_xxx
+chatlog-analysis-system/
+├── public/              # 静态资源
+├── views/               # 页面模板
+├── routes/              # API路由
+├── utils/               # 工具函数
+├── config/              # 配置文件
+├── 启动说明.md          # 使用指南
+├── 项目说明.md          # 技术文档
+├── 环境配置模板.txt      # 环境配置
+├── package.json         # 项目依赖
+└── app.js              # 应用入口
 ```
 
-参数说明：
-- `time`: 时间范围，格式为 `YYYY-MM-DD` 或 `YYYY-MM-DD~YYYY-MM-DD`
-- `talker`: 聊天对象标识（支持 wxid、群聊 ID、备注名、昵称等）
-- `limit`: 返回记录数量
-- `offset`: 分页偏移量
-- `format`: 输出格式，支持 `json`、`csv` 或纯文本
-
-### 其他 API 接口
-
-- **联系人列表**：`GET /api/v1/contact`
-- **群聊列表**：`GET /api/v1/chatroom`
-- **会话列表**：`GET /api/v1/session`
-- **多媒体内容**：`GET /api/v1/media?msgid=xxx`
-
-
-## MCP 集成
-
-Chatlog 支持 MCP (Model Context Protocol) SSE 协议，可与支持 MCP 的 AI 助手无缝集成。  
-启动 HTTP 服务后，通过 SSE Endpoint 访问服务：
-
-```
-GET /sse
+### 启动开发环境
+```bash
+npm run dev
 ```
 
-### 快速集成
+## 📝 更新日志
 
-Chatlog 可以与多种支持 MCP 的 AI 助手集成，包括：
+### v2.7.0 (2025-01-21)
+- 🎯 工具提示功能全新升级，配置的分析项默认隐藏
+- ✨ 新增优雅的显示/隐藏动画效果
+- 🎨 智能关闭机制和美观的工具提示设计
+- 📱 响应式设计优化，适配不同屏幕尺寸
 
-- **ChatWise**: 直接支持 SSE，在工具设置中添加 `http://127.0.0.1:5030/sse`
-- **Cherry Studio**: 直接支持 SSE，在 MCP 服务器设置中添加 `http://127.0.0.1:5030/sse`
+### v2.6.1 (2025-01-20)
+- 🔄 Chatlog服务连接机制全面优化
+- 🔧 新增智能重试机制和定期自动检测
+- ⏰ 增加超时管理和页面可见性检测
+- 🛡️ 详细错误诊断和优雅的视觉反馈
 
-对于不直接支持 SSE 的客户端，可以使用 [mcp-proxy](https://github.com/sparfenyuk/mcp-proxy) 工具转发请求：
+## 🤝 贡献
 
-- **Claude Desktop**: 通过 mcp-proxy 支持，需要配置 `claude_desktop_config.json`
-- **Monica Code**: 通过 mcp-proxy 支持，需要配置 VSCode 插件设置
+欢迎提交 Issue 和 Pull Request！
 
-### 详细集成指南
+1. Fork 项目
+2. 创建功能分支：`git checkout -b feature/amazing-feature`
+3. 提交更改：`git commit -m 'Add some amazing feature'`
+4. 推送到分支：`git push origin feature/amazing-feature`
+5. 提交 Pull Request
 
-查看 [MCP 集成指南](docs/mcp.md) 获取各平台的详细配置步骤和注意事项。
+## 📄 许可证
 
-## Prompt 示例
+本项目采用 [MIT](LICENSE) 许可证。
 
-为了帮助大家更好地利用 Chatlog 与 AI 助手，我们整理了一些 prompt 示例。希望这些 prompt 可以启发大家更有效地查询和分析聊天记录，获取更精准的信息。
+## 📞 支持
 
-查看 [Prompt 指南](docs/prompt.md) 获取详细示例。
+如果您在使用过程中遇到问题：
 
-同时欢迎大家分享使用经验和 prompt！如果您有好的 prompt 示例或使用技巧，请通过 [Discussions](https://github.com/sjzar/chatlog/discussions) 进行分享，共同进步。
+1. 查看 [启动说明](启动说明.md) 中的常见问题
+2. 搜索已有的 [Issues](../../issues)
+3. 提交新的 Issue 并提供详细信息
 
-## 免责声明
+---
 
-⚠️ **重要提示：使用本项目前，请务必阅读并理解完整的 [免责声明](./DISCLAIMER.md)。**
-
-本项目仅供学习、研究和个人合法使用，禁止用于任何非法目的或未授权访问他人数据。下载、安装或使用本工具即表示您同意遵守免责声明中的所有条款，并自行承担使用过程中的全部风险和法律责任。
-
-### 摘要（请阅读完整免责声明）
-
-- 仅限处理您自己合法拥有的聊天数据或已获授权的数据
-- 严禁用于未经授权获取、查看或分析他人聊天记录
-- 开发者不对使用本工具可能导致的任何损失承担责任
-- 使用第三方 LLM 服务时，您应遵守这些服务的使用条款和隐私政策
-
-**本项目完全免费开源，任何以本项目名义收费的行为均与本项目无关。**
-
-## License
-
-本项目基于 [Apache-2.0 许可证](./LICENSE) 开源。
-
-## 隐私政策
-
-本项目不收集任何用户数据。所有数据处理均在用户本地设备上进行。使用第三方服务时，请参阅相应服务的隐私政策。
-
-## Thanks
-
-- [@0xlane](https://github.com/0xlane) 的 [wechat-dump-rs](https://github.com/0xlane/wechat-dump-rs) 项目
-- [@xaoyaoo](https://github.com/xaoyaoo) 的 [PyWxDump](https://github.com/xaoyaoo/PyWxDump) 项目
-- [@git-jiadong](https://github.com/git-jiadong) 的 [go-lame](https://github.com/git-jiadong/go-lame) 和 [go-silk](https://github.com/git-jiadong/go-silk) 项目
-- [Anthropic](https://www.anthropic.com/) 的 [MCP]((https://github.com/modelcontextprotocol) ) 协议
-- 各个 Go 开源库的贡献者们
+⭐ 如果这个项目对您有帮助，请给它一个 Star！

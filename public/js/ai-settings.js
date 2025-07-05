@@ -4,7 +4,7 @@ class AISettingsManager {
         this.settings = this.loadSettings();
         this.defaultSettings = {
             programming: {
-                timeRange: 'yesterday', // 改为昨天
+                timeRange: 'yesterday',
                 groupName: 'AI 编程互助会 07 群',
                 prompt: this.getDefaultPrompt('programming'),
                 displayName: '编程群分析'
@@ -48,7 +48,7 @@ class AISettingsManager {
     
     // 初始化所有按钮的显示名称
     initializeDisplayNames() {
-        // 更新默认分析项
+        // 更新预设分析项
         Object.keys(this.defaultSettings).forEach(type => {
             const settings = this.getSettings(type);
             if (settings.displayName) {
@@ -67,47 +67,59 @@ class AISettingsManager {
 
     // 获取默认提示词
     getDefaultPrompt(type) {
+        // 首先尝试从模板管理器获取
+        if (window.templateManager) {
+            const template = window.templateManager.getTemplate(type);
+            if (template) {
+                return template;
+            }
+        }
+        
+        // 如果模板管理器中没有，使用内置默认模板
         const prompts = {
-            programming: `请基于以上编程技术群聊数据，生成一个完整的HTML可视化分析页面，包含：
-1. 讨论话题分布（技术栈、框架、问题类型等）
-2. 活跃用户贡献度分析
-3. 时间活跃度热力图
-4. 技术关键词词云
-5. 问答互动质量分析
+            programming: `请分析这个编程相关群聊的聊天记录，重点关注：
 
-要求：
-- 生成完整的HTML页面，包含CSS和JavaScript
-- 使用Chart.js或类似库创建图表
-- 页面美观，响应式设计
-- 包含具体的数据分析和洞察`,
+1. 技术讨论与问题解决
+2. 编程语言和框架的使用经验
+3. 开发工具和最佳实践分享
+4. 代码示例和解决方案
+5. 技术趋势和新技术讨论
 
-            science: `请基于以上科学学习群聊数据，生成一个完整的HTML可视化分析页面，包含：
-1. 学科分布分析
-2. 学习讨论热点话题
-3. 知识分享频率统计
-4. 互动模式分析
-5. 学习活跃时间分析
+请提供结构化的分析报告，包括：
+- 主要技术话题总结
+- 重要代码片段和解决方案
+- 技术观点和建议摘录
+- 有价值的资源链接整理`,
 
-要求：
-- 生成完整的HTML页面，包含CSS和JavaScript
-- 使用数据可视化库创建图表
-- 教育主题的配色方案
-- 包含学习效果评估`,
+            science: `请分析这个科学相关群聊的聊天记录，重点关注：
 
-            reading: `请基于以上读者群聊数据，生成一个完整的HTML可视化分析页面，包含：
-1. 图书类型和作者分布
-2. 读书讨论热度分析
-3. 读者互动网络图
-4. 阅读推荐统计
-5. 读书心得分享频次
+1. 科学发现和研究进展
+2. 实验方法和数据分析
+3. 科学理论的讨论和应用
+4. 学术资源和论文分享
+5. 科研工具和技术介绍
 
-要求：
-- 生成完整的HTML页面，包含CSS和JavaScript
-- 书香主题的设计风格
-- 使用合适的图表展示阅读数据
-- 包含阅读趋势分析`
+请提供结构化的分析报告，包括：
+- 主要科学话题总结
+- 重要研究成果和发现
+- 科学观点和见解摘录
+- 有价值的学术资源整理`,
+
+            reading: `请分析这个读书相关群聊的聊天记录，重点关注：
+
+1. 书籍推荐和评价
+2. 阅读心得和感悟分享
+3. 作者观点和思想讨论
+4. 读书方法和习惯交流
+5. 文学作品的深度解析
+
+请提供结构化的分析报告，包括：
+- 主要阅读话题总结
+- 推荐书籍和理由
+- 精彩观点和感悟摘录
+- 有价值的阅读资源整理`
         };
-        return prompts[type] || '';
+        return prompts[type] || `请分析这个群聊的聊天记录，重点关注核心话题、有价值的观点和重要信息分享。`;
     }
 
     // 绑定事件监听器
@@ -767,10 +779,96 @@ class AISettingsManager {
         this.handleTimeRangeChange(defaultSetting.timeRange);
         console.log('已恢复默认设置');
     }
+
+    // 更新getDefaultPrompt方法，从模板管理器获取模板
+    async updateDefaultPrompt(type) {
+        if (window.templateManager) {
+            try {
+                // 从模板管理器获取最新模板
+                const template = window.templateManager.getTemplate(type);
+                if (template) {
+                    this.defaultSettings[type].prompt = template;
+                }
+            } catch (error) {
+                console.error('获取模板失败:', error);
+            }
+        }
+    }
+}
+
+// 全局函数：填入默认模板
+async function fillSettingsPrompt() {
+    const promptTextarea = document.getElementById('settingsPrompt');
+    if (!promptTextarea) return;
+
+    // 获取当前编辑的类型
+    const aiSettings = window.aiSettingsManager;
+    if (!aiSettings || !aiSettings.currentEditingType) {
+        alert('请先选择要编辑的分析类型');
+        return;
+    }
+
+    const currentType = aiSettings.currentEditingType;
+    
+    try {
+        // 从模板管理器获取对应类型的模板
+        if (window.templateManager) {
+            await window.templateManager.loadTemplates();
+            const template = window.templateManager.getTemplate(currentType);
+            
+            if (template) {
+                promptTextarea.value = template;
+                
+                // 显示成功消息
+                if (window.templateManager.showToast) {
+                    window.templateManager.showToast('已填入默认模板', 'success');
+                } else {
+                    alert('已填入默认模板');
+                }
+                
+                // 自动调整文本框高度
+                promptTextarea.style.height = 'auto';
+                promptTextarea.style.height = Math.min(promptTextarea.scrollHeight, 400) + 'px';
+            } else {
+                alert('该类型暂无默认模板');
+            }
+        } else {
+            // 如果模板管理器未加载，使用内置默认模板
+            const builtinTemplate = aiSettings.getDefaultPrompt(currentType);
+            if (builtinTemplate) {
+                promptTextarea.value = builtinTemplate;
+                alert('已填入内置默认模板');
+                
+                // 自动调整文本框高度
+                promptTextarea.style.height = 'auto';
+                promptTextarea.style.height = Math.min(promptTextarea.scrollHeight, 400) + 'px';
+            } else {
+                alert('未找到默认模板');
+            }
+        }
+    } catch (error) {
+        console.error('填入默认模板失败:', error);
+        alert('填入默认模板失败，请重试');
+    }
+}
+
+// 清空提示词
+function clearSettingsPrompt() {
+    const promptTextarea = document.getElementById('settingsPrompt');
+    if (promptTextarea) {
+        if (confirm('确定要清空提示词内容吗？')) {
+            promptTextarea.value = '';
+            promptTextarea.style.height = 'auto';
+        }
+    }
 }
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
     console.log('初始化AI设置管理器');
     window.aiSettingsManager = new AISettingsManager();
+    
+    // 暴露全局函数
+    window.fillSettingsPrompt = fillSettingsPrompt;
+    window.clearSettingsPrompt = clearSettingsPrompt;
 }); 

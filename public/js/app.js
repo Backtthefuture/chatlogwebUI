@@ -46,10 +46,14 @@ class ChatlogApp {
         this.loadAnalysisHistory();
         this.initDynamicAnalysisItems();
         
+        // 确保页面加载时隐藏任何残留的加载状态
+        this.hideLoading();
+        
         // 页面加载完成后检查连接状态和定时任务状态
         setTimeout(() => {
             this.checkStatus(true); // 显示初始检测结果
             this.loadScheduledStatus(); // 加载定时任务状态
+            this.checkAIModelRecommendation(); // 检查AI模型推荐
         }, 500);
         
         // 页面卸载时停止自动检测
@@ -436,8 +440,8 @@ class ChatlogApp {
         } finally {
             // 恢复按钮状态
             setTimeout(() => {
-                refreshBtn.innerHTML = originalText;
-                refreshBtn.disabled = false;
+            refreshBtn.innerHTML = originalText;
+            refreshBtn.disabled = false;
             }, 1000); // 延迟1秒恢复，避免按钮状态变化太快
         }
     }
@@ -2552,6 +2556,139 @@ class ChatlogApp {
             this.connectionCheckInterval = null;
             console.log('⏹️ 自动连接检测已停止');
         }
+    }
+    
+    // ============ AI模型优化管理 ============
+    
+    // 检查AI模型健康状态并推荐最佳模型
+    async checkAIModelRecommendation() {
+        try {
+            const response = await fetch('/api/ai-model-recommendation');
+            const data = await response.json();
+            
+            if (data.success && data.recommendation) {
+                const { recommended, reason, details } = data.recommendation;
+                
+                // 如果推荐的模型与当前不同，显示建议
+                const currentProvider = this.getCurrentModelProvider();
+                if (recommended && recommended !== currentProvider.toLowerCase()) {
+                    this.showModelRecommendation(recommended, reason, details);
+                }
+                
+                console.log('🤖 AI模型状态检查:', {
+                    current: currentProvider,
+                    recommended: recommended,
+                    reason: reason,
+                    details: details
+                });
+            }
+        } catch (error) {
+            console.error('AI模型推荐检查失败:', error);
+        }
+    }
+    
+    // 获取当前模型提供商
+    getCurrentModelProvider() {
+        // 这里需要从模型设置中获取当前提供商
+        // 暂时返回默认值，实际应该从设置中读取
+        return 'deepseek'; // 或者从localStorage或其他地方获取
+    }
+    
+    // 显示模型推荐提示
+    showModelRecommendation(recommended, reason, details) {
+        const recommendationHtml = `
+            <div class="model-recommendation-toast" id="modelRecommendationToast">
+                <div class="toast-content">
+                    <div class="toast-header">
+                        <i class="fas fa-robot"></i>
+                        <span>AI模型推荐</span>
+                        <button class="toast-close" onclick="chatlogApp.hideModelRecommendation()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="toast-body">
+                        <p><strong>建议切换到 ${recommended.toUpperCase()}</strong></p>
+                        <p class="reason">${reason}</p>
+                        <div class="model-status">
+                            <div class="status-item">
+                                <span class="model-name">DeepSeek:</span>
+                                <span class="status ${details.deepseek.available ? 'available' : 'unavailable'}">
+                                    ${details.deepseek.available ? 
+                                        `✅ 可用 (${details.deepseek.responseTime}ms)` : 
+                                        '❌ 不可用'
+                                    }
+                                </span>
+                            </div>
+                            <div class="status-item">
+                                <span class="model-name">Gemini:</span>
+                                <span class="status ${details.gemini.available ? 'available' : 'unavailable'}">
+                                    ${details.gemini.available ? 
+                                        `✅ 可用 (${details.gemini.responseTime}ms)` : 
+                                        '❌ 不可用'
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                        <div class="toast-actions">
+                            <button class="btn-switch" onclick="chatlogApp.switchToRecommendedModel('${recommended}')">
+                                立即切换
+                            </button>
+                            <button class="btn-dismiss" onclick="chatlogApp.hideModelRecommendation()">
+                                忽略
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 移除已存在的推荐提示
+        const existing = document.getElementById('modelRecommendationToast');
+        if (existing) {
+            existing.remove();
+        }
+        
+        // 添加新的推荐提示
+        document.body.insertAdjacentHTML('beforeend', recommendationHtml);
+        
+        // 显示动画
+        setTimeout(() => {
+            const toast = document.getElementById('modelRecommendationToast');
+            if (toast) {
+                toast.classList.add('show');
+            }
+        }, 100);
+        
+        // 10秒后自动隐藏
+        setTimeout(() => {
+            this.hideModelRecommendation();
+        }, 10000);
+    }
+    
+    // 隐藏模型推荐提示
+    hideModelRecommendation() {
+        const toast = document.getElementById('modelRecommendationToast');
+        if (toast) {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }
+    }
+    
+    // 切换到推荐的模型
+    switchToRecommendedModel(modelProvider) {
+        // 这里应该调用模型设置的切换功能
+        console.log(`切换到推荐模型: ${modelProvider}`);
+        
+        // 隐藏推荐提示
+        this.hideModelRecommendation();
+        
+        // 显示成功消息
+        this.showMessage(`已切换到 ${modelProvider.toUpperCase()} 模型`, 'success');
+        
+        // TODO: 实际的模型切换逻辑
+        // 这里需要调用模型设置页面的切换功能
     }
     
     // ============ 工具提示管理 ============
