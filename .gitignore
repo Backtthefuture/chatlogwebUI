@@ -1,2 +1,7 @@
 # 忽略所有数据库文件
 *.db 
+
+# 忽略日志文件
+logs/
+*.log
+server.log

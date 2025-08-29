@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>聊天记录查询</title>
     <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
+    <link rel="stylesheet" href="/css/ai-settings.css?v=<%= Date.now() %>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* Cron预览样式优化 */
@@ -105,6 +106,9 @@
                         <button class="ai-settings-btn" data-type="programming" title="设置编程群分析">
                             <i class="fas fa-cog"></i>
                         </button>
+                        <button class="ai-delete-btn" data-type="programming" title="删除编程群分析">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                     
                     <div class="ai-btn-group">
@@ -114,6 +118,9 @@
                         <button class="ai-settings-btn" data-type="science" title="设置科学群分析">
                             <i class="fas fa-cog"></i>
                         </button>
+                        <button class="ai-delete-btn" data-type="science" title="删除科学群分析">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                     
                     <div class="ai-btn-group">
@@ -122,6 +129,9 @@
                         </button>
                         <button class="ai-settings-btn" data-type="reading" title="设置读者群分析">
                             <i class="fas fa-cog"></i>
+                        </button>
+                        <button class="ai-delete-btn" data-type="reading" title="删除读者群分析">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                     
@@ -550,88 +560,7 @@
         </div>
     </div>
 
-    <!-- AI设置模态框 -->
-    <div class="ai-settings-modal" id="aiSettingsModal">
-        <div class="ai-settings-content">
-            <div class="ai-settings-header">
-                <h3 id="aiSettingsTitle">AI 分析设置</h3>
-                <button class="ai-settings-close" id="closeAiSettings">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="ai-settings-body">
-                <form id="aiSettingsForm">
-                    <input type="hidden" id="settingsType" name="settingsType" value="">
-                    
-                    <div class="settings-group">
-                        <label for="settingsDisplayName">显示名称：</label>
-                        <input type="text" id="settingsDisplayName" name="settingsDisplayName" placeholder="请输入显示在首页的名称">
-                    </div>
-                    
-                    <div class="settings-group">
-                        <label for="settingsTimeRange">默认时间范围：</label>
-                        <select id="settingsTimeRange" name="settingsTimeRange">
-                            <option value="yesterday">昨天</option>
-                            <option value="today">今天</option>
-                            <option value="week">最近一周</option>
-                            <option value="month">最近一月</option>
-                            <option value="custom">自定义范围</option>
-                        </select>
-                    </div>
-
-                    <div class="settings-group custom-date-range" id="customDateRange" style="display: none;">
-                        <div class="date-inputs">
-                            <div>
-                                <label for="settingsStartDate">开始日期：</label>
-                                <input type="date" id="settingsStartDate" name="settingsStartDate">
-                            </div>
-                            <div>
-                                <label for="settingsEndDate">结束日期：</label>
-                                <input type="date" id="settingsEndDate" name="settingsEndDate">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-group">
-                        <label for="settingsGroupName">默认群聊：</label>
-                        <div class="searchable-select">
-                            <input type="text" id="settingsGroupSearch" placeholder="🔍 搜索群聊名称..." class="group-search-input">
-                            <select id="settingsGroupName" name="settingsGroupName">
-                                <option value="">请选择群聊</option>
-                            </select>
-                            <div class="search-results-count" id="searchResultsCount" style="display: none;"></div>
-                        </div>
-                    </div>
-
-                    <div class="settings-group">
-                        <label for="settingsPrompt">自定义提示词：</label>
-                        <div class="prompt-actions" style="margin-bottom: 0.5rem;">
-                            <button type="button" class="preset-btn small" onclick="fillSettingsPrompt()">
-                                📋 使用默认模板
-                            </button>
-                            <button type="button" class="preset-btn small" onclick="clearSettingsPrompt()">
-                                🗑️ 清空
-                            </button>
-                        </div>
-                        <textarea id="settingsPrompt" name="settingsPrompt" rows="8" 
-                                  placeholder="输入自定义分析提示词..."></textarea>
-                    </div>
-
-                    <div class="settings-actions">
-                        <button type="button" id="deleteItemBtn" class="delete-item-btn" style="display: none;">
-                            <i class="fas fa-trash"></i> 删除此项
-                        </button>
-                        <button type="button" class="save-settings-btn" id="saveSettingsBtn">
-                            <i class="fas fa-save"></i> 保存设置
-                        </button>
-                        <button type="button" class="reset-settings-btn" id="resetSettingsBtn">
-                            <i class="fas fa-undo"></i> 恢复默认
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <!-- AI设置模态框将由ai-settings.js动态创建 -->
 
     <!-- 模型设置模态框 -->
     <div class="model-settings-modal" id="modelSettingsModal">
@@ -665,6 +594,16 @@
                                     <div class="provider-info">
                                         <span class="provider-name">Gemini</span>
                                         <span class="provider-desc">Google 大语言模型</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="provider-option">
+                                <input type="radio" id="providerCustom" name="modelProvider" value="Custom">
+                                <label for="providerCustom" class="provider-label">
+                                    <div class="provider-icon">🔌</div>
+                                    <div class="provider-info">
+                                        <span class="provider-name">自定义AI</span>
+                                        <span class="provider-desc">第三方API接入</span>
                                     </div>
                                 </label>
                             </div>
@@ -715,6 +654,40 @@
                                 </button>
                             </div>
                             <div class="key-status" id="geminiKeyStatus"></div>
+                        </div>
+                    </div>
+
+                    <!-- 自定义AI配置 -->
+                    <div class="settings-section provider-config" id="customConfig" style="display: none;">
+                        <h4><i class="fas fa-cog"></i> 自定义AI配置</h4>
+                        <div class="config-group">
+                            <label for="customName">名称：</label>
+                            <input type="text" id="customName" name="customName" placeholder="自定义AI名称">
+                        </div>
+                        <div class="config-group">
+                            <label for="customApiUrl">API地址：</label>
+                            <input type="text" id="customApiUrl" name="customApiUrl" placeholder="https://api.example.com/v1">
+                        </div>
+                        <div class="config-group">
+                            <label for="customModel">模型名称：</label>
+                            <input type="text" id="customModel" name="customModel" placeholder="模型标识符">
+                        </div>
+                        <div class="config-group">
+                            <label for="customApiKey">API Key：</label>
+                            <div class="api-key-input">
+                                <input type="password" id="customApiKey" name="customApiKey" placeholder="您的API密钥">
+                                <button type="button" class="toggle-visibility" data-target="customApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="key-status" id="customKeyStatus"></div>
+                        </div>
+                        <div class="config-group">
+                            <label for="customFormat">API格式：</label>
+                            <select id="customFormat" name="customFormat">
+                                <option value="openai" selected>OpenAI兼容格式</option>
+                            </select>
+                            <div class="format-hint">目前仅支持OpenAI兼容的API格式</div>
                         </div>
                     </div>
 

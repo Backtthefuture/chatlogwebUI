@@ -1,0 +1,262 @@
+/* AI设置模态框样式 */
+.ai-settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.ai-settings-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-settings-content {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideDown 0.3s ease;
+}
+
+.ai-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.ai-settings-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.ai-settings-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+
+.ai-settings-close:hover {
+    color: #333;
+}
+
+.ai-settings-body {
+    padding: 20px;
+}
+
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.settings-group input[type="text"],
+.settings-group select,
+.settings-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.settings-group textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.settings-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    gap: 10px;
+}
+
+.save-settings-btn,
+.reset-settings-btn,
+.delete-item-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.save-settings-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.reset-settings-btn {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.delete-item-btn {
+    background-color: #f44336;
+    color: white;
+    margin-right: auto;
+}
+
+.save-settings-btn:hover {
+    background-color: #45a049;
+}
+
+.reset-settings-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.delete-item-btn:hover {
+    background-color: #d32f2f;
+}
+
+.custom-date-range {
+    margin-top: 10px;
+}
+
+.date-inputs {
+    display: flex;
+    gap: 10px;
+}
+
+.date-inputs > div {
+    flex: 1;
+}
+
+/* 搜索下拉框样式 */
+.searchable-select {
+    position: relative;
+}
+
+.group-search-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.search-results-count {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    font-size: 12px;
+    color: #666;
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+/* 全局设置区域样式 */
+.global-settings-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.global-settings-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #333;
+}
+
+/* 复选框组样式 */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.checkbox-text {
+    font-weight: normal;
+    margin-right: 5px;
+}
+
+/* 提示图标样式 */
+.tooltip-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: #f0f0f0;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 16px;
+    font-size: 12px;
+    color: #666;
+    cursor: help;
+    margin-left: 5px;
+}
+
+.tooltip-icon:hover {
+    background-color: #e0e0e0;
+}
+
+/* 提示框样式 */
+.settings-tooltip {
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1100;
+    max-width: 200px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.settings-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 10px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid #333;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
