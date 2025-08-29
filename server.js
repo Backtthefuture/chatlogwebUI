@@ -392,12 +392,94 @@ async function callAI(prompt, systemPrompt, retryCount = 0) {
       });
       
       return response.data.candidates[0].content.parts[0].text;
+    } else if (provider === 'Custom') {
+      // 自定义AI提供商处理
+      console.log('📊 使用自定义AI提供商:', config.name);
+      
+      // 根据format决定请求格式
+      if (config.format === 'openai') {
+        // OpenAI兼容格式
+        response = await axios.post(`${config.apiUrl}/chat/completions`, {
+          model: config.model,
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 1.0,
+          max_tokens: 64000,
+          stream: false
+        }, {
+          headers: {
+            'Authorization': `Bearer ${config.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: timeoutDuration,
+          httpAgent: new (require('http').Agent)({ 
+            keepAlive: true,
+            maxSockets: 1,
+            timeout: timeoutDuration
+          }),
+          httpsAgent: new (require('https').Agent)({ 
+            keepAlive: true,
+            maxSockets: 1,
+            timeout: timeoutDuration
+          })
+        });
+        
+        return response.data.choices[0].message.content;
+      } else {
+        // 自定义格式，使用通用请求
+        throw new Error('目前仅支持OpenAI兼容格式的自定义API');
+      }
     }
     
     throw new Error('不支持的AI提供商');
     
   } catch (error) {
+    // 创建详细的错误日志对象
+    const errorLog = {
+      timestamp: new Date().toISOString(),
+      attempt: retryCount + 1,
+      errorMessage: error.message,
+      errorCode: error.code || 'UNKNOWN',
+      errorName: error.name,
+      errorStack: error.stack
+    };
+    
+    // 记录请求配置信息（如果存在）
+    if (error.config) {
+      errorLog.request = {
+        url: error.config.url,
+        method: error.config.method,
+        headers: { ...error.config.headers },
+        timeout: error.config.timeout
+      };
+      
+      // 移除敏感信息
+      if (errorLog.request.headers && errorLog.request.headers.Authorization) {
+        errorLog.request.headers.Authorization = '[REDACTED]';
+      }
+    }
+    
+    // 记录响应信息（如果存在）
+    if (error.response) {
+      errorLog.response = {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: error.response.headers,
+        data: error.response.data
+      };
+    }
+    
+    // 输出格式化的错误信息
     console.error(`❌ AI API调用失败 (第${retryCount + 1}次):`, error.message);
+    console.error('详细错误信息:', JSON.stringify(errorLog, null, 2));
     
     // 判断是否需要重试
     const shouldRetry = retryCount < maxRetries && (
@@ -413,13 +495,31 @@ async function callAI(prompt, systemPrompt, retryCount = 0) {
       const delay = baseDelay * Math.pow(2, retryCount); // 指数退避
       console.log(`⏳ ${delay/1000}秒后进行第${retryCount + 2}次重试...`);
       
+      // 记录重试信息
+      console.log(`重试信息: 尝试次数=${retryCount+1}, 最大重试次数=${maxRetries}, 延迟=${delay}ms`);
+      
       await new Promise(resolve => setTimeout(resolve, delay));
       return await callAI(prompt, systemPrompt, retryCount + 1);
     }
     
-    // 记录详细错误信息
-    if (error.response) {
-      console.error('API错误响应:', error.response.status, error.response.data);
+    // 将错误信息写入日志文件
+    try {
+      const fs = require('fs');
+      const logDir = './logs';
+      
+      // 确保日志目录存在
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      
+      // 写入错误日志
+      fs.appendFileSync(
+        `${logDir}/api-errors.log`, 
+        `[${new Date().toISOString()}] API调用失败 (第${retryCount + 1}次): ${error.message}\n` +
+        `详细信息: ${JSON.stringify(errorLog, null, 2)}\n\n`
+      );
+    } catch (logError) {
+      console.error('写入错误日志失败:', logError);
     }
     
     throw error;
@@ -438,7 +538,8 @@ async function callDeepSeekAPI(prompt, systemPrompt) {
 async function checkAIModelHealth() {
   const results = {
     deepseek: { available: false, responseTime: null, error: null },
-    gemini: { available: false, responseTime: null, error: null }
+    gemini: { available: false, responseTime: null, error: null },
+    custom: { available: false, responseTime: null, error: null }
   };
   
   // 测试DeepSeek
@@ -477,6 +578,42 @@ async function checkAIModelHealth() {
     results.gemini.error = error.message;
   }
   
+  // 测试自定义AI提供商
+  try {
+    // 读取自定义AI配置
+    const fs = require('fs');
+    const path = require('path');
+    const modelSettingsPath = path.join(__dirname, 'model-settings.json');
+    
+    if (fs.existsSync(modelSettingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(modelSettingsPath, 'utf8'));
+      
+      if (settings.custom && settings.custom.apiUrl && settings.custom.apiKey) {
+        const startTime = Date.now();
+        
+        // 根据format决定请求格式
+        if (settings.custom.format === 'openai') {
+          await axios.post(`${settings.custom.apiUrl}/chat/completions`, {
+            model: settings.custom.model || 'default',
+            messages: [{ role: 'user', content: 'test' }],
+            max_tokens: 1
+          }, {
+            headers: {
+              'Authorization': `Bearer ${settings.custom.apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 10000
+          });
+        }
+        
+        results.custom.available = true;
+        results.custom.responseTime = Date.now() - startTime;
+      }
+    }
+  } catch (error) {
+    results.custom.error = error.message;
+  }
+  
   return results;
 }
 
@@ -492,20 +629,26 @@ app.get('/api/ai-model-recommendation', async (req, res) => {
     };
     
     // 基于响应时间和可用性推荐
-    if (health.deepseek.available && health.gemini.available) {
-      if (health.deepseek.responseTime < health.gemini.responseTime) {
-        recommendation.recommended = 'deepseek';
-        recommendation.reason = `DeepSeek响应更快 (${health.deepseek.responseTime}ms vs ${health.gemini.responseTime}ms)`;
+    const availableModels = [];
+    if (health.deepseek.available) availableModels.push({name: 'deepseek', time: health.deepseek.responseTime});
+    if (health.gemini.available) availableModels.push({name: 'gemini', time: health.gemini.responseTime});
+    if (health.custom.available) availableModels.push({name: 'custom', time: health.custom.responseTime});
+    
+    if (availableModels.length > 0) {
+      // 按响应时间排序
+      availableModels.sort((a, b) => a.time - b.time);
+      const fastest = availableModels[0];
+      
+      recommendation.recommended = fastest.name;
+      
+      if (availableModels.length > 1) {
+        const comparisons = availableModels.slice(1).map(model => 
+          `${model.name} (${model.time}ms)`
+        ).join(', ');
+        recommendation.reason = `${fastest.name}响应最快 (${fastest.time}ms vs ${comparisons})`;
       } else {
-        recommendation.recommended = 'gemini';
-        recommendation.reason = `Gemini响应更快 (${health.gemini.responseTime}ms vs ${health.deepseek.responseTime}ms)`;
+        recommendation.reason = `${fastest.name}是唯一可用的模型 (${fastest.time}ms)`;
       }
-    } else if (health.deepseek.available) {
-      recommendation.recommended = 'deepseek';
-      recommendation.reason = 'Gemini当前不可用';
-    } else if (health.gemini.available) {
-      recommendation.recommended = 'gemini';
-      recommendation.reason = 'DeepSeek当前不可用';
     } else {
       recommendation.recommended = null;
       recommendation.reason = '所有AI模型当前都不可用';
@@ -560,7 +703,20 @@ async function getModelConfig() {
   }
 }
 
-function generatePromptTemplate(analysisType, chatData, customPrompt = '') {
+function generatePromptTemplate(analysisType, chatData, customPrompt = '', shouldFilterImages = true) {
+  // 获取AI设置
+  const aiSettingsPath = path.join(__dirname, 'ai-settings.json');
+  let filterImages = shouldFilterImages;
+  
+  try {
+    if (fs.existsSync(aiSettingsPath)) {
+      const aiSettings = JSON.parse(fs.readFileSync(aiSettingsPath, 'utf8'));
+      filterImages = aiSettings.filterImages === true;
+    }
+  } catch (error) {
+    console.warn('读取AI设置失败，使用默认设置', error);
+  }
+  
   // 不做任何限制，保留完整数据
   const validMessages = chatData.filter(msg => msg.content && msg.content.trim().length > 0);
   const userStats = {};
@@ -572,6 +728,21 @@ function generatePromptTemplate(analysisType, chatData, customPrompt = '') {
     }
   });
   
+  // 处理消息内容，过滤图片消息
+  const processedMessages = validMessages.map(msg => {
+    let content = msg.content;
+    
+    // 如果启用了图片过滤，检测并替换图片消息
+    if (filterImages && content) {
+      // 检测<msg>...</msg>格式的图片消息
+      if (/<msg>.*?<\/msg>/s.test(content)) {
+        content = "此处是用户发聊天图，无法解析";
+      }
+    }
+    
+    return `${msg.time} [${msg.senderName}]: ${content}`;
+  });
+  
   const basicInfo = `
 聊天数据概况：
 - 群聊名称: ${chatData[0]?.talkerName || '未知群聊'}
@@ -581,7 +752,7 @@ function generatePromptTemplate(analysisType, chatData, customPrompt = '') {
 - 主要发言用户: ${Object.entries(userStats).sort((a,b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => `${name}(${count}条)`).join(', ')}
 
 完整聊天数据：
-${validMessages.map(msg => `${msg.time} [${msg.senderName}]: ${msg.content}`).join('\n')}
+${processedMessages.join('\n')}
 `;
 
   // 如果有自定义提示词，直接使用
@@ -600,9 +771,31 @@ ${customPrompt}`;
 // AI分析接口（修改为返回historyId）
 app.post('/api/ai-analysis', async (req, res) => {
   try {
-    const { groupName, analysisType, customPrompt, timeRange } = req.body;
+    const { groupName, analysisType, customPrompt, timeRange, filterImages } = req.body;
     
-    console.log('AI分析请求:', { groupName, analysisType, customPrompt, timeRange });
+    console.log('AI分析请求:', { groupName, analysisType, customPrompt, timeRange, filterImages });
+
+    // 如果提供了filterImages参数，更新ai-settings.json
+    if (filterImages !== undefined) {
+      try {
+        const aiSettingsPath = path.join(__dirname, 'ai-settings.json');
+        let aiSettings = {};
+        
+        // 读取现有设置
+        if (fs.existsSync(aiSettingsPath)) {
+          aiSettings = JSON.parse(fs.readFileSync(aiSettingsPath, 'utf8'));
+        }
+        
+        // 更新filterImages设置
+        aiSettings.filterImages = filterImages === true;
+        
+        // 保存设置
+        fs.writeFileSync(aiSettingsPath, JSON.stringify(aiSettings, null, 2));
+        console.log('已更新图片过滤设置:', filterImages);
+      } catch (error) {
+        console.error('保存AI设置失败:', error);
+      }
+    }
 
     if (!groupName) {
       return res.status(400).json({ error: '请指定群聊名称' });
@@ -657,8 +850,70 @@ app.post('/api/ai-analysis', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('AI分析失败:', error.message);
+    console.error('AI分析失败:', error);
     
+    // 创建详细的错误日志对象
+    const errorLog = {
+      timestamp: new Date().toISOString(),
+      errorMessage: error.message,
+      errorCode: error.code || 'UNKNOWN',
+      errorName: error.name,
+      errorStack: error.stack,
+      requestParams: {
+        groupName: req.body.groupName,
+        analysisType: req.body.analysisType,
+        timeRange: req.body.timeRange,
+        customPromptLength: req.body.customPrompt ? req.body.customPrompt.length : 0
+      }
+    };
+    
+    // 记录请求配置信息（如果存在）
+    if (error.config) {
+      errorLog.request = {
+        url: error.config.url,
+        method: error.config.method,
+        timeout: error.config.timeout
+      };
+      
+      // 移除敏感信息
+      if (error.config.headers && error.config.headers.Authorization) {
+        errorLog.request.hasAuthHeader = true;
+      }
+    }
+    
+    // 记录响应信息（如果存在）
+    if (error.response) {
+      errorLog.response = {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      };
+    }
+    
+    // 输出格式化的错误信息到控制台
+    console.error('详细错误信息:', JSON.stringify(errorLog, null, 2));
+    
+    // 将错误信息写入日志文件
+    try {
+      const fs = require('fs');
+      const logDir = './logs';
+      
+      // 确保日志目录存在
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      
+      // 写入错误日志
+      fs.appendFileSync(
+        `${logDir}/api-errors.log`, 
+        `[${new Date().toISOString()}] AI分析失败: ${error.message}\n` +
+        `详细信息: ${JSON.stringify(errorLog, null, 2)}\n\n`
+      );
+    } catch (logError) {
+      console.error('写入错误日志失败:', logError);
+    }
+    
+    // 用户友好的错误消息
     let errorMessage = 'AI分析失败: ' + error.message;
     let suggestions = [];
     
@@ -692,12 +947,15 @@ app.post('/api/ai-analysis', async (req, res) => {
       ];
     }
     
+    // 返回详细的错误信息
     res.json({ 
       success: false, 
       error: errorMessage,
       suggestions: suggestions,
       errorCode: error.code,
-      httpStatus: error.response?.status
+      httpStatus: error.response?.status,
+      errorDetails: errorLog,
+      timestamp: new Date().toISOString()
     });
   }
 });
@@ -1804,7 +2062,7 @@ app.post('/api/test-cron-expression', (req, res) => {
 // 保存模型设置
 app.post('/api/model-settings', (req, res) => {
   try {
-    const { modelProvider, deepseek, gemini } = req.body;
+    const { modelProvider, deepseek, gemini, custom } = req.body;
     
     if (!modelProvider) {
       return res.status(400).json({
@@ -1814,7 +2072,27 @@ app.post('/api/model-settings', (req, res) => {
     }
     
     // 验证配置
-    const selectedConfig = modelProvider === 'DeepSeek' ? deepseek : gemini;
+    let selectedConfig;
+    if (modelProvider === 'DeepSeek') {
+      selectedConfig = deepseek;
+    } else if (modelProvider === 'Gemini') {
+      selectedConfig = gemini;
+    } else if (modelProvider === 'Custom') {
+      selectedConfig = custom;
+      // 自定义提供商需要额外验证API URL
+      if (!selectedConfig.apiUrl || selectedConfig.apiUrl.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          error: 'API URL 不能为空'
+        });
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: '不支持的模型提供商'
+      });
+    }
+    
     if (!selectedConfig || !selectedConfig.apiKey || !selectedConfig.model) {
       return res.status(400).json({
         success: false,
@@ -1841,6 +2119,15 @@ app.post('/api/model-settings', (req, res) => {
       'GEMINI_MODEL': gemini.model
     };
     
+    // 如果有自定义AI提供商配置，也添加到环境变量
+    if (custom) {
+      envUpdates['CUSTOM_API_URL'] = custom.apiUrl || '';
+      envUpdates['CUSTOM_API_KEY'] = custom.apiKey || '';
+      envUpdates['CUSTOM_MODEL'] = custom.model || '';
+      envUpdates['CUSTOM_NAME'] = custom.name || '自定义AI';
+      envUpdates['CUSTOM_FORMAT'] = custom.format || 'openai';
+    }
+    
     Object.keys(envUpdates).forEach(key => {
       const value = envUpdates[key];
       const regex = new RegExp(`^${key}=.*$`, 'm');
@@ -1860,6 +2147,7 @@ app.post('/api/model-settings', (req, res) => {
       modelProvider,
       deepseek,
       gemini,
+      custom,
       updatedAt: new Date().toISOString()
     };
     
@@ -1894,15 +2182,23 @@ app.get('/api/model-settings', (req, res) => {
       // 出于安全考虑，不返回完整的API Key
       const safeSettings = {
         ...settings,
-      deepseek: {
+        deepseek: {
           ...settings.deepseek,
           apiKey: settings.deepseek.apiKey ? settings.deepseek.apiKey.substring(0, 8) + '...' : ''
         },
         gemini: {
           ...settings.gemini,
           apiKey: settings.gemini.apiKey ? settings.gemini.apiKey.substring(0, 8) + '...' : ''
+        }
+      };
+      
+      // 如果有自定义AI提供商配置，也处理其API Key
+      if (settings.custom) {
+        safeSettings.custom = {
+          ...settings.custom,
+          apiKey: settings.custom.apiKey ? settings.custom.apiKey.substring(0, 8) + '...' : ''
+        };
       }
-    };
     
     res.json({
       success: true,
@@ -1921,6 +2217,13 @@ app.get('/api/model-settings', (req, res) => {
           gemini: {
             model: 'gemini-2.5-pro',
             apiKey: ''
+          },
+          custom: {
+            name: '自定义AI',
+            apiUrl: 'https://api.example.com/v1',
+            model: 'custom-model',
+            apiKey: '',
+            format: 'openai'
           }
         }
       });
@@ -1973,6 +2276,8 @@ app.post('/api/model-settings/test', async (req, res) => {
       testResult = await testDeepSeekConnection(config.apiKey, config.model);
     } else if (provider === 'Gemini') {
       testResult = await testGeminiConnection(config.apiKey, config.model);
+    } else if (provider === 'Custom') {
+      testResult = await testCustomConnection(config);
     } else {
       return res.status(400).json({
         success: false,
@@ -2109,6 +2414,103 @@ async function testGeminiConnection(apiKey, model) {
           error: `API 错误 (${statusCode}): ${errorData?.error?.message || '未知错误'}`
         };
   }
+    } else {
+      return {
+        success: false,
+        error: error.code === 'ECONNABORTED' ? '连接超时，请检查网络' : error.message
+      };
+    }
+  }
+}
+
+// 自定义AI连接测试函数
+async function testCustomConnection(config) {
+  try {
+    // 验证必要参数
+    if (!config.apiUrl) {
+      return {
+        success: false,
+        error: 'API URL 不能为空'
+      };
+    }
+    
+    if (!config.apiKey) {
+      return {
+        success: false,
+        error: 'API Key 不能为空'
+      };
+    }
+    
+    if (!config.model) {
+      return {
+        success: false,
+        error: '模型名称不能为空'
+      };
+    }
+    
+    // 根据format决定请求格式
+    if (config.format === 'openai') {
+      // OpenAI兼容格式
+      const response = await axios.post(`${config.apiUrl}/chat/completions`, {
+        model: config.model,
+        messages: [
+          {
+            role: 'user',
+            content: '你好，请回复"连接测试成功"'
+          }
+        ],
+        max_tokens: 50,
+        temperature: 0.1
+      }, {
+        headers: {
+          'Authorization': `Bearer ${config.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      if (response.status === 200 && response.data.choices && response.data.choices[0]) {
+        return {
+          success: true,
+          message: '连接测试成功',
+          model: config.model,
+          response: response.data.choices[0].message.content
+        };
+      } else {
+        return {
+          success: false,
+          error: '模型响应格式异常'
+        };
+      }
+    } else {
+      return {
+        success: false,
+        error: '目前仅支持OpenAI兼容格式的自定义API'
+      };
+    }
+  } catch (error) {
+    console.error('自定义AI连接测试失败:', error.message);
+    
+    if (error.response) {
+      const statusCode = error.response.status;
+      const errorData = error.response.data;
+      
+      if (statusCode === 401) {
+        return {
+          success: false,
+          error: 'API Key 无效，请检查您的密钥'
+        };
+      } else if (statusCode === 429) {
+        return {
+          success: false,
+          error: 'API 调用频率超限，请稍后重试'
+        };
+      } else {
+        return {
+          success: false,
+          error: `API 错误 (${statusCode}): ${errorData?.error?.message || '未知错误'}`
+        };
+      }
     } else {
       return {
         success: false,

@@ -45,6 +45,7 @@ class ChatlogApp {
         this.initDatePickers();
         this.loadAnalysisHistory();
         this.initDynamicAnalysisItems();
+        this.bindDefaultAnalysisDeleteEvents();
         
         // 确保页面加载时隐藏任何残留的加载状态
         this.hideLoading();
@@ -69,6 +70,34 @@ class ChatlogApp {
             } else {
                 // 页面隐藏时，停止自动检测以节省资源
                 this.stopAutoConnectionCheck();
+            }
+        });
+    }
+    
+    // 绑定默认分析项的删除按钮事件并检查已删除的项
+    bindDefaultAnalysisDeleteEvents() {
+        const defaultTypes = ['programming', 'science', 'reading'];
+        
+        defaultTypes.forEach(type => {
+            // 检查该分析项是否已被标记为删除
+            if (window.aiSettingsManager && window.aiSettingsManager.settings[type] && 
+                window.aiSettingsManager.settings[type].isDeleted === true) {
+                // 如果已删除，隐藏该分析项
+                const analysisBtn = document.querySelector(`[data-type="${type}"]:not(.ai-settings-btn):not(.ai-delete-btn)`);
+                if (analysisBtn) {
+                    const btnGroup = analysisBtn.closest('.ai-btn-group');
+                    if (btnGroup) {
+                        btnGroup.style.display = 'none';
+                    }
+                }
+            }
+            
+            // 绑定删除按钮事件
+            const deleteBtn = document.querySelector(`.ai-delete-btn[data-type="${type}"]`);
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => {
+                    this.deleteAnalysisItem(type);
+                });
             }
         });
     }
@@ -904,14 +933,31 @@ class ChatlogApp {
     }
 
     // 显示消息提示
-    showMessage(message, type = 'info') {
+    showMessage(message, type = 'info', errorDetails = null) {
         // 创建消息元素
         const messageDiv = document.createElement('div');
         messageDiv.className = `${type}-message`;
-        messageDiv.innerHTML = `
+        
+        // 基本消息内容
+        let messageContent = `
             <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i>
             ${message}
         `;
+        
+        // 如果是错误消息且有详细信息，添加"显示详情"按钮
+        if (type === 'error' && errorDetails) {
+            messageContent += `
+                <div class="error-actions">
+                    <button class="show-details-btn">显示详情</button>
+                    <button class="copy-error-btn">复制错误</button>
+                </div>
+                <div class="error-details" style="display:none;">
+                    <pre>${JSON.stringify(errorDetails, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        messageDiv.innerHTML = messageContent;
         
         // 添加到页面
         document.body.appendChild(messageDiv);
@@ -922,11 +968,50 @@ class ChatlogApp {
             top: '20px',
             right: '20px',
             zIndex: '2000',
-            maxWidth: '300px',
+            maxWidth: type === 'error' && errorDetails ? '600px' : '300px',
             animation: 'slideIn 0.3s ease'
         });
         
-        // 3秒后移除
+        // 添加事件监听器（如果是错误消息且有详细信息）
+        if (type === 'error' && errorDetails) {
+            const showDetailsBtn = messageDiv.querySelector('.show-details-btn');
+            const copyErrorBtn = messageDiv.querySelector('.copy-error-btn');
+            const errorDetailsDiv = messageDiv.querySelector('.error-details');
+            
+            // 显示/隐藏详情
+            if (showDetailsBtn) {
+                showDetailsBtn.addEventListener('click', () => {
+                    if (errorDetailsDiv.style.display === 'none') {
+                        errorDetailsDiv.style.display = 'block';
+                        showDetailsBtn.textContent = '隐藏详情';
+                    } else {
+                        errorDetailsDiv.style.display = 'none';
+                        showDetailsBtn.textContent = '显示详情';
+                    }
+                });
+            }
+            
+            // 复制错误信息
+            if (copyErrorBtn) {
+                copyErrorBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(JSON.stringify(errorDetails, null, 2))
+                        .then(() => {
+                            copyErrorBtn.textContent = '已复制';
+                            setTimeout(() => {
+                                copyErrorBtn.textContent = '复制错误';
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            console.error('复制失败:', err);
+                        });
+                });
+            }
+        }
+        
+        // 错误消息停留时间更长
+        const timeout = type === 'error' ? 10000 : 3000;
+        
+        // 超时后移除
         setTimeout(() => {
             messageDiv.style.animation = 'slideOut 0.3s ease';
             setTimeout(() => {
@@ -939,6 +1024,14 @@ class ChatlogApp {
 
     // AI分析相关方法
     async startAIAnalysis(groupName, analysisType) {
+        // 获取图片过滤设置
+        let filterImages = true; // 默认开启图片过滤
+        if (window.aiSettingsManager && 
+            window.aiSettingsManager.globalSettings && 
+            window.aiSettingsManager.globalSettings.filterImages !== undefined) {
+            filterImages = window.aiSettingsManager.globalSettings.filterImages;
+        }
+        
         try {
             // 显示加载状态
             this.showAILoading(true);
@@ -950,6 +1043,7 @@ class ChatlogApp {
             let settings = {};
             let timeRange = '2024-01-01~2025-12-31';
             let customPrompt = '';
+            let filterImages = true; // 默认开启图片过滤
             
             if (window.aiSettingsManager) {
                 settings = window.aiSettingsManager.getSettings(analysisType);
@@ -959,6 +1053,11 @@ class ChatlogApp {
                 }
                 if (settings.prompt) {
                     customPrompt = settings.prompt;
+                }
+                // 获取全局设置中的图片过滤选项
+                if (window.aiSettingsManager.globalSettings && 
+                    window.aiSettingsManager.globalSettings.filterImages !== undefined) {
+                    filterImages = window.aiSettingsManager.globalSettings.filterImages;
                 }
             }
             
@@ -972,7 +1071,8 @@ class ChatlogApp {
                     groupName: groupName,
                     analysisType: analysisType,
                     customPrompt: customPrompt,
-                    timeRange: timeRange
+                    timeRange: timeRange,
+                    filterImages: filterImages
                 })
             });
 
@@ -997,7 +1097,31 @@ class ChatlogApp {
 
         } catch (error) {
             console.error('AI分析失败:', error);
-            this.showMessage('AI分析失败: ' + error.message, 'error');
+            
+            // 创建详细的错误信息对象
+            const errorDetails = {
+                message: error.message,
+                type: error.name,
+                timestamp: new Date().toISOString(),
+                requestInfo: {
+                    groupName,
+                    analysisType,
+                    timeRange
+                }
+            };
+            
+            // 如果有响应数据，添加到错误详情中
+            if (error.response) {
+                try {
+                    errorDetails.response = await error.response.json();
+                } catch (e) {
+                    errorDetails.responseText = await error.response.text();
+                }
+                errorDetails.status = error.response.status;
+                errorDetails.statusText = error.response.statusText;
+            }
+            
+            this.showMessage('AI分析失败: ' + error.message, 'error', errorDetails);
         } finally {
             this.showAILoading(false);
             this.setAIButtonsEnabled(true);
@@ -1095,7 +1219,7 @@ class ChatlogApp {
         // 获取时间范围，默认使用昨天
         let timeRange = customTimeRange;
         
-        // 如果没有指定时间范围或选择了"昨天"，计算昨天的日期
+        // 如果没有指定时间范围或选择了\"昨天\"，计算昨天的日期
         if (!customTimeRange || customTimeRange === 'yesterday') {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
@@ -1105,6 +1229,14 @@ class ChatlogApp {
             const day = String(yesterday.getDate()).padStart(2, '0');
             const dateStr = `${year}-${month}-${day}`;
             timeRange = `${dateStr}~${dateStr}`;
+        }
+
+        // 获取图片过滤设置
+        let filterImages = true; // 默认开启图片过滤
+        if (window.aiSettingsManager && 
+            window.aiSettingsManager.globalSettings && 
+            window.aiSettingsManager.globalSettings.filterImages !== undefined) {
+            filterImages = window.aiSettingsManager.globalSettings.filterImages;
         }
 
         try {
@@ -1122,7 +1254,8 @@ class ChatlogApp {
                     groupName: groupName,
                     analysisType: 'custom',
                     customPrompt: customPrompt,
-                    timeRange: timeRange
+                    timeRange: timeRange,
+                    filterImages: filterImages
                 })
             });
 
@@ -1150,7 +1283,32 @@ class ChatlogApp {
 
         } catch (error) {
             console.error('自定义分析失败:', error);
-            this.showMessage('自定义分析失败: ' + error.message, 'error');
+            
+            // 创建详细的错误信息对象
+            const errorDetails = {
+                message: error.message,
+                type: error.name,
+                timestamp: new Date().toISOString(),
+                requestInfo: {
+                    groupName,
+                    analysisType: 'custom',
+                    customPrompt: customPrompt ? customPrompt.substring(0, 100) + '...' : null,
+                    timeRange
+                }
+            };
+            
+            // 如果有响应数据，添加到错误详情中
+            if (error.response) {
+                try {
+                    errorDetails.response = await error.response.json();
+                } catch (e) {
+                    errorDetails.responseText = await error.response.text();
+                }
+                errorDetails.status = error.response.status;
+                errorDetails.statusText = error.response.statusText;
+            }
+            
+            this.showMessage('自定义分析失败: ' + error.message, 'error', errorDetails);
         } finally {
             this.showAILoading(false);
             this.setAIButtonsEnabled(true);
@@ -1306,6 +1464,9 @@ class ChatlogApp {
                 <button class="ai-settings-btn" data-type="${item.id}" title="设置分析">
                     <i class="fas fa-cog"></i>
                 </button>
+                <button class="ai-delete-btn" data-type="${item.id}" title="删除分析">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         `;
         
@@ -1317,8 +1478,9 @@ class ChatlogApp {
     
     // 绑定动态分析项事件
     bindDynamicAnalysisEvents(itemId) {
-        const analysisBtn = document.querySelector(`[data-type="${itemId}"]:not(.ai-settings-btn)`);
+        const analysisBtn = document.querySelector(`[data-type="${itemId}"]:not(.ai-settings-btn):not(.ai-delete-btn)`);
         const settingsBtn = document.querySelector(`[data-type="${itemId}"].ai-settings-btn`);
+        const deleteBtn = document.querySelector(`[data-type="${itemId}"].ai-delete-btn`);
         
         if (analysisBtn) {
             analysisBtn.addEventListener('click', () => {
@@ -1331,6 +1493,12 @@ class ChatlogApp {
                 if (window.aiSettingsManager) {
                     window.aiSettingsManager.openSettings(itemId);
                 }
+            });
+        }
+        
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                this.deleteAnalysisItem(itemId);
             });
         }
     }
@@ -1383,6 +1551,60 @@ class ChatlogApp {
         if (element) {
             element.remove();
         }
+    }
+    
+    // 删除分析项（处理所有类型的分析项）
+    deleteAnalysisItem(itemId) {
+        // 确认是否删除
+        const isDynamic = itemId.startsWith('dynamic_');
+        const itemType = isDynamic ? '自定义分析项' : '默认分析项';
+        
+        // 获取分析项名称
+        let itemName = itemId;
+        if (window.aiSettingsManager) {
+            const settings = window.aiSettingsManager.getSettings(itemId);
+            if (settings && settings.displayName) {
+                itemName = settings.displayName;
+            }
+        }
+        
+        const confirmMessage = `确定要删除${itemType}「${itemName}」吗？`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        if (isDynamic) {
+            // 动态分析项：完全删除
+            if (window.aiSettingsManager) {
+                window.aiSettingsManager.removeDynamicAnalysisItem(itemId);
+            }
+        } else {
+            // 默认分析项：也完全删除
+            // 使用更兼容的选择器方式
+            const analysisBtn = document.querySelector(`[data-type="${itemId}"]:not(.ai-settings-btn):not(.ai-delete-btn)`);
+            if (analysisBtn) {
+                const btnGroup = analysisBtn.closest('.ai-btn-group');
+                if (btnGroup) {
+                    btnGroup.style.display = 'none'; // 隐藏整个按钮组
+                    
+                    // 标记该分析项为已删除
+                    if (window.aiSettingsManager) {
+                        // 确保设置对象存在
+                        if (!window.aiSettingsManager.settings[itemId]) {
+                            window.aiSettingsManager.settings[itemId] = {};
+                        }
+                        
+                        // 标记为已删除
+                        window.aiSettingsManager.settings[itemId].isDeleted = true;
+                        window.aiSettingsManager.saveSettings();
+                    }
+                }
+            }
+        }
+        
+        // 显示成功消息
+        this.showMessage(`已删除分析项：${itemName}`, 'success');
     }
 
     // 删除分析历史记录
@@ -1507,10 +1729,11 @@ class ChatlogApp {
             { id: 'reading', name: '读者群分析', type: 'default' }
         ];
         
-        // 检查每个默认分析项是否有配置和群聊选择
+        // 检查每个默认分析项是否有配置和群聊选择，且未被删除
         defaultItems.forEach(item => {
             const settings = window.aiSettingsManager?.getSettings(item.id);
-            if (settings && settings.groupName) {
+            // 只添加未被标记为删除的项
+            if (settings && settings.groupName && !settings.isDeleted) {
                 analysisItems.push({
                     id: item.id,
                     name: settings.displayName || item.name,
@@ -1640,6 +1863,14 @@ class ChatlogApp {
     // 执行单个分析
     async executeSingleAnalysis(analysisItem) {
         try {
+            // 获取图片过滤设置
+            let filterImages = true; // 默认开启图片过滤
+            if (window.aiSettingsManager && 
+                window.aiSettingsManager.globalSettings && 
+                window.aiSettingsManager.globalSettings.filterImages !== undefined) {
+                filterImages = window.aiSettingsManager.globalSettings.filterImages;
+            }
+            
             const response = await fetch('/api/ai-analysis', {
                 method: 'POST',
                 headers: {
@@ -1649,7 +1880,8 @@ class ChatlogApp {
                     groupName: analysisItem.groupName,
                     analysisType: analysisItem.analysisType,
                     customPrompt: analysisItem.customPrompt,
-                    timeRange: analysisItem.timeRange
+                    timeRange: analysisItem.timeRange,
+                    filterImages: filterImages
                 })
             });
             
@@ -2138,14 +2370,12 @@ class ChatlogApp {
         container.innerHTML = '<div class="loading-config">正在加载分析项...</div>';
         
         try {
-            const response = await fetch('/api/scheduled-analysis-status');
-            const data = await response.json();
+            // 使用本地数据而不是从服务器获取，确保显示的是最新状态（包括删除状态）
+            const analysisItems = this.getAllAnalysisItems();
+            this.displayAnalysisItemsForConfig(analysisItems);
             
-            if (data.success) {
-                this.displayAnalysisItemsForConfig(data.analysisItems);
-            } else {
-                container.innerHTML = '<div class="loading-config">❌ 加载失败</div>';
-            }
+            // 同步最新配置到服务器
+            await this.syncAnalysisConfigToServer();
         } catch (error) {
             console.error('加载分析项失败:', error);
             container.innerHTML = '<div class="loading-config">❌ 加载失败</div>';
@@ -2436,14 +2666,33 @@ class ChatlogApp {
                 dynamicAnalysisItems: window.aiSettingsManager?.dynamicAnalysisItems || []
             };
             
-            // 添加所有配置的分析项设置
+            // 添加所有配置的分析项设置（只添加未被删除的项）
             const allItems = this.getAllAnalysisItems();
-            allItems.forEach(item => {
-                const settings = window.aiSettingsManager?.getSettings(item.id);
-                if (settings && settings.groupName) {
-                    analysisConfig[item.id] = settings;
-                }
-            });
+            
+            // 添加已配置但未被删除的分析项
+            if (window.aiSettingsManager) {
+                // 获取所有默认分析项ID
+                const defaultItemIds = ['programming', 'science', 'reading'];
+                
+                // 遍历所有默认分析项，只添加未被删除的
+                defaultItemIds.forEach(itemId => {
+                    const settings = window.aiSettingsManager.getSettings(itemId);
+                    // 只添加未被标记为删除的项
+                    if (settings && settings.groupName && !settings.isDeleted) {
+                        analysisConfig[itemId] = settings;
+                    }
+                });
+                
+                // 添加动态分析项（这些已经通过getAllAnalysisItems过滤）
+                allItems.forEach(item => {
+                    if (item.id.startsWith('dynamic_')) {
+                        const settings = window.aiSettingsManager.getSettings(item.id);
+                        if (settings && settings.groupName) {
+                            analysisConfig[item.id] = settings;
+                        }
+                    }
+                });
+            }
             
             // 发送到服务器
             const response = await fetch('/api/save-analysis-config', {

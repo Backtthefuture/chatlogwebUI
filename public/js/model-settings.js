@@ -69,6 +69,10 @@ class ModelSettings {
         document.getElementById('geminiApiKey').addEventListener('input', (e) => {
             this.validateApiKey('gemini', e.target.value);
         });
+
+        document.getElementById('customApiKey').addEventListener('input', (e) => {
+            this.validateApiKey('custom', e.target.value);
+        });
     }
 
     // 打开弹窗
@@ -87,13 +91,20 @@ class ModelSettings {
     switchProvider(provider) {
         const deepseekConfig = document.getElementById('deepseekConfig');
         const geminiConfig = document.getElementById('geminiConfig');
+        const customConfig = document.getElementById('customConfig');
 
+        // 隐藏所有配置
+        deepseekConfig.style.display = 'none';
+        geminiConfig.style.display = 'none';
+        customConfig.style.display = 'none';
+
+        // 显示选中的配置
         if (provider === 'DeepSeek') {
             deepseekConfig.style.display = 'block';
-            geminiConfig.style.display = 'none';
         } else if (provider === 'Gemini') {
-            deepseekConfig.style.display = 'none';
             geminiConfig.style.display = 'block';
+        } else if (provider === 'Custom') {
+            customConfig.style.display = 'block';
         }
     }
 
@@ -131,6 +142,10 @@ class ModelSettings {
         } else if (provider === 'gemini') {
             isValid = apiKey.startsWith('AI') && apiKey.length > 20;
             message = isValid ? '✓ API Key 格式正确' : '✗ Gemini API Key 应以 AI 开头';
+        } else if (provider === 'custom') {
+            // 自定义API Key格式较为宽松，只要长度足够即可
+            isValid = apiKey.length > 8;
+            message = isValid ? '✓ API Key 长度合适' : '✗ API Key 长度过短';
         }
 
         statusElement.textContent = message;
@@ -201,6 +216,13 @@ class ModelSettings {
             gemini: {
                 model: document.getElementById('geminiModel').value,
                 apiKey: document.getElementById('geminiApiKey').value
+            },
+            custom: {
+                name: document.getElementById('customName').value,
+                apiUrl: document.getElementById('customApiUrl').value,
+                model: document.getElementById('customModel').value,
+                apiKey: document.getElementById('customApiKey').value,
+                format: document.getElementById('customFormat').value
             }
         };
     }
@@ -283,6 +305,13 @@ class ModelSettings {
             gemini: {
                 model: 'gemini-2.5-pro',
                 apiKey: ''
+            },
+            custom: {
+                name: '自定义AI',
+                apiUrl: 'https://api.example.com/v1',
+                model: 'custom-model',
+                apiKey: '',
+                format: 'openai'
             }
         };
     }
@@ -310,6 +339,19 @@ class ModelSettings {
         document.getElementById('geminiApiKey').value = settings.gemini.apiKey;
         if (settings.gemini.apiKey) {
             this.validateApiKey('gemini', settings.gemini.apiKey);
+        }
+
+        // 设置自定义AI配置
+        if (settings.custom) {
+            document.getElementById('customName').value = settings.custom.name || '自定义AI';
+            document.getElementById('customApiUrl').value = settings.custom.apiUrl || '';
+            document.getElementById('customModel').value = settings.custom.model || '';
+            document.getElementById('customApiKey').value = settings.custom.apiKey || '';
+            document.getElementById('customFormat').value = settings.custom.format || 'openai';
+            
+            if (settings.custom.apiKey) {
+                this.validateApiKey('custom', settings.custom.apiKey);
+            }
         }
     }
 

@@ -23,6 +23,11 @@ class AISettingsManager {
             }
         };
         
+        // 全局设置
+        this.globalSettings = {
+            filterImages: true // 默认开启图片过滤
+        };
+        
         // 动态分析项管理
         this.dynamicAnalysisItems = this.loadDynamicItems();
         this.currentEditingType = null;
@@ -150,6 +155,7 @@ class AISettingsManager {
             const resetBtn = document.getElementById('resetSettingsBtn');
             const deleteBtn = document.getElementById('deleteItemBtn');
             const groupSearch = document.getElementById('settingsGroupSearch');
+            const filterImages = document.getElementById('settingsFilterImages');
 
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => {
@@ -186,6 +192,35 @@ class AISettingsManager {
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', () => {
                     this.deleteCurrentItem();
+                });
+            }
+            
+            // 图片过滤选项
+            if (filterImages) {
+                filterImages.checked = this.globalSettings.filterImages;
+                filterImages.addEventListener('change', (e) => {
+                    this.globalSettings.filterImages = e.target.checked;
+                });
+                
+                // 添加悬浮提示
+                const tooltipIcons = document.querySelectorAll('.tooltip-icon');
+                tooltipIcons.forEach(icon => {
+                    icon.addEventListener('mouseenter', function() {
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'settings-tooltip';
+                        tooltip.textContent = this.getAttribute('title');
+                        
+                        // 计算位置
+                        const rect = this.getBoundingClientRect();
+                        tooltip.style.top = `${rect.bottom + 5}px`;
+                        tooltip.style.left = `${rect.left}px`;
+                        
+                        document.body.appendChild(tooltip);
+                        
+                        this.addEventListener('mouseleave', function() {
+                            tooltip.remove();
+                        }, { once: true });
+                    });
                 });
             }
 
@@ -282,7 +317,15 @@ class AISettingsManager {
     loadSettings() {
         try {
             const saved = localStorage.getItem('aiAnalysisSettings');
-            return saved ? JSON.parse(saved) : {};
+            const settings = saved ? JSON.parse(saved) : {};
+            
+            // 加载全局设置
+            const globalSaved = localStorage.getItem('aiGlobalSettings');
+            if (globalSaved) {
+                this.globalSettings = {...this.globalSettings, ...JSON.parse(globalSaved)};
+            }
+            
+            return settings;
         } catch (error) {
             console.warn('加载AI设置失败:', error);
             return {};
@@ -293,9 +336,40 @@ class AISettingsManager {
     saveSettings() {
         try {
             localStorage.setItem('aiAnalysisSettings', JSON.stringify(this.settings));
+            localStorage.setItem('aiGlobalSettings', JSON.stringify(this.globalSettings));
             console.log('AI设置已保存');
+            
+            // 同步到服务器
+            this.syncSettingsToServer();
         } catch (error) {
             console.error('保存AI设置失败:', error);
+        }
+    }
+    
+    // 同步设置到服务器
+    async syncSettingsToServer() {
+        try {
+            // 构建完整的设置对象
+            const fullSettings = {
+                ...this.settings,
+                filterImages: this.globalSettings.filterImages
+            };
+            
+            // 发送到服务器
+            const response = await fetch('/api/save-analysis-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ analysisConfig: fullSettings })
+            });
+            
+            const result = await response.json();
+            if (!result.success) {
+                console.error('同步设置到服务器失败:', result.error);
+            }
+        } catch (error) {
+            console.error('同步设置到服务器失败:', error);
         }
     }
 
@@ -422,6 +496,19 @@ class AISettingsManager {
                         <label for="settingsPrompt">自定义提示词：</label>
                         <textarea id="settingsPrompt" rows="8" placeholder="请输入自定义提示词"></textarea>
                     </div>
+                    
+                    <!-- 全局设置区域 -->
+                    <div class="global-settings-section">
+                        <h4>全局设置</h4>
+                        <div class="settings-group checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="settingsFilterImages" checked>
+                                <span class="checkbox-text">过滤图片内容</span>
+                                <span class="tooltip-icon" title="图片内容不发给AI，减少token消耗">?</span>
+                            </label>
+                        </div>
+                    </div>
+                    
                     <div class="settings-actions">
                         <button id="deleteItemBtn" class="delete-item-btn" style="display: none;">
                             <i class="fas fa-trash"></i> 删除此项
@@ -653,6 +740,7 @@ class AISettingsManager {
         const prompt = document.getElementById('settingsPrompt')?.value;
         const startDate = document.getElementById('settingsStartDate')?.value;
         const endDate = document.getElementById('settingsEndDate')?.value;
+        const filterImages = document.getElementById('settingsFilterImages')?.checked;
 
         const newSettings = {
             displayName: displayName || '',
@@ -667,7 +755,15 @@ class AISettingsManager {
             newSettings.endDate = endDate;
         }
 
+        // 保存分析项设置
         this.settings[this.currentEditingType] = newSettings;
+        
+        // 保存全局设置
+        if (filterImages !== undefined) {
+            this.globalSettings.filterImages = filterImages;
+        }
+        
+        // 保存所有设置
         this.saveSettings();
         
         // 如果是动态分析项，更新动态分析项数组
@@ -686,6 +782,7 @@ class AISettingsManager {
         this.updateDisplayName(this.currentEditingType, newSettings.displayName);
         
         console.log('设置已保存:', this.currentEditingType, newSettings);
+        console.log('全局设置已保存:', this.globalSettings);
         alert('设置已保存');
         this.closeSettings();
     }

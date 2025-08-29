@@ -244,15 +244,15 @@ body {
 }
 
 .ai-settings-btn {
-    background: rgba(142, 142, 147, 0.12);
-    color: #8E8E93;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: none;
-    padding: 0.875rem;
-    border-radius: 12px;
+    border-radius: 0;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
 }
 
 .ai-settings-btn:hover {
@@ -674,23 +674,107 @@ body {
     background: #a8a8a8;
 }
 
-/* 错误消息样式 */
+/* 消息提示样式 - 增强版 */
+.error-message,
+.success-message,
+.info-message,
+.warning-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+    max-width: 300px;
+    animation: slideIn 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
 .error-message {
     background: #ffebee;
     color: #c62828;
-    padding: 1rem;
-    border-radius: 8px;
     border-left: 4px solid #c62828;
-    margin: 1rem 0;
 }
 
 .success-message {
     background: #e8f5e8;
     color: #2e7d32;
-    padding: 1rem;
-    border-radius: 8px;
     border-left: 4px solid #2e7d32;
-    margin: 1rem 0;
+}
+
+.info-message {
+    background: #e3f2fd;
+    color: #0277bd;
+    border-left: 4px solid #0277bd;
+}
+
+.warning-message {
+    background: #fff8e1;
+    color: #ff8f00;
+    border-left: 4px solid #ff8f00;
+}
+
+/* 错误详情样式 */
+.error-details {
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.error-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.show-details-btn,
+.copy-error-btn {
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.show-details-btn:hover,
+.copy-error-btn:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* 消息动画 */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
 }
 
 /* AI分析功能样式 - 顶部特色区域 */
@@ -747,12 +831,25 @@ body {
 /* AI按钮组和设置按钮样式 */
 .ai-btn-group {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: stretch;
+    margin-bottom: 0.75rem;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
 }
 
+/* 修改按钮圆角，使其适应三按钮布局 */
 .ai-btn-group .ai-btn {
-    flex: 1;
+    border-radius: 6px 0 0 6px;
+}
+
+.ai-btn-group .ai-settings-btn {
+    border-radius: 0;
+}
+
+.ai-btn-group .ai-delete-btn {
+    border-radius: 0 6px 6px 0;
 }
 
 .ai-settings-btn {
@@ -780,21 +877,49 @@ body {
     font-size: 0.9rem;
 }
 
+/* 删除按钮样式 */
+.ai-delete-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+    border: none;
+    border-radius: 0 6px 6px 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ai-delete-btn:hover {
+    background: rgba(220, 53, 69, 0.2);
+    color: #c82333;
+}
+
+.ai-delete-btn:active {
+    background: rgba(220, 53, 69, 0.3);
+}
+
+.ai-delete-btn i {
+    font-size: 0.9rem;
+}
+
 .ai-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
+    border-radius: 6px 0 0 6px;
     font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    position: relative;
-    overflow: hidden;
+    min-width: 150px;
 }
 
 .ai-btn:hover {
